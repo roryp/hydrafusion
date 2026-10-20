@@ -56,6 +56,12 @@ describe('static files and recordings', () => {
     }
   });
 
+  test('introduces HydraFusion below the title and before the section navigation', async () => {
+    const html = await (await fetch(`${server.origin}/`)).text();
+    const intro = html.match(/<h1>[^<]+<\/h1>\s*<p class="subtitle">([^<]+)<\/p>\s*<nav\b/)?.[1];
+    assert.equal(intro, 'HydraFusion is a GitHub Copilot model, in research preview, that plans each request and picks a model for each step. This app runs three prompts against a web page with accessibility problems built in, and shows which pattern HydraFusion picked, each step as it runs, and what it cost.');
+  });
+
   test('lists the reference runs and a recorded live run of each demo', async () => {
     const { recordings } = await (await fetch(`${server.origin}/api/recordings`)).json();
     assert.deepEqual(recordings.filter((r) => r.source === 'reference').map((r) => r.pattern), ['critique', 'cascade', 'single']);
