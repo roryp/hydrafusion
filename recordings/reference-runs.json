@@ -1,0 +1,107 @@
+{
+  "about": "Reference runs: the demo page and the same prompt, one run of each pattern. They keep the models, prices, premium multipliers and AIU of each pass, but not the answers or token counts, so their timings only pace the replay.",
+  "recordings": [
+    {
+      "id": "reference-critique-max",
+      "title": "Critique, Max tier (reference run)",
+      "source": "reference",
+      "demoId": "critique",
+      "events": [
+        { "t": 0, "type": "run.started", "data": {
+          "demoId": "critique", "title": "Critique", "tier": "Max", "model": "hydrafusion-max",
+          "prompt": "quickly test this page with the browser tools", "expectedPattern": "critique", "source": "reference",
+          "note": "This run used older models and missed some problems.",
+          "reported": { "aiu": 1.2, "premiumRequests": 2 },
+          "models": {
+            "gpt-5.6-luna": { "name": "GPT-5.6 Luna", "prices": { "input": 20, "output": 120 } },
+            "gpt-5.6-terra": { "name": "GPT-5.6 Terra", "prices": { "input": 200, "output": 1200 } }
+          }
+        } },
+        { "t": 500, "type": "session.fusion_route_started", "data": { "syntheticModel": "hydrafusion-max", "turnKind": "user" } },
+        { "t": 1500, "type": "session.fusion_resolved", "data": {
+          "syntheticModel": "hydrafusion-max", "pattern": "critique",
+          "hint": "Using Critique: a solver will draft a result, a critic will review it, and the original solver will revise it if needed.",
+          "primaryModel": "gpt-5.6-luna", "secondaryModel": "gpt-5.6-terra",
+          "phasePlan": [
+            { "kind": "draft", "role": "solver", "scope": "root", "conditional": false },
+            { "kind": "critic", "role": "critic", "scope": "review", "conditional": false },
+            { "kind": "revision", "role": "solver", "scope": "root", "conditional": true }
+          ]
+        } },
+        { "t": 1600, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-critique:draft", "phaseKind": "draft", "role": "solver", "conversationScope": "root", "pattern": "critique", "model": "gpt-5.6-luna" } },
+        { "t": 9000, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-critique:draft", "phaseKind": "draft", "role": "solver", "conversationScope": "root", "model": "gpt-5.6-luna", "status": "succeeded", "content": "", "verdict": null, "durationMs": null, "usage": { "totalNanoAiu": 940000000 }, "legacyPremium": 1 } },
+        { "t": 9100, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-critique:critic", "phaseKind": "critic", "role": "critic", "conversationScope": "review", "pattern": "critique", "model": "gpt-5.6-terra" } },
+        { "t": 13500, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-critique:critic", "phaseKind": "critic", "role": "critic", "conversationScope": "review", "model": "gpt-5.6-terra", "status": "succeeded", "content": "", "verdict": null, "durationMs": null, "usage": { "totalNanoAiu": 280000000 }, "legacyPremium": 1 } },
+        { "t": 13600, "type": "session.fusion_completed", "data": { "pattern": "critique", "syntheticModel": "hydrafusion-max", "phaseCount": 2, "totalNanoAiu": 1200000000, "outcome": "succeeded", "finalSourcePhaseId": "reference-critique:draft", "finalSourceModel": "gpt-5.6-luna" } },
+        { "t": 13700, "type": "run.finished", "data": { "ok": true, "durationMs": null } }
+      ]
+    },
+    {
+      "id": "reference-cascade-default",
+      "title": "Cascade, Default tier (reference run)",
+      "source": "reference",
+      "demoId": "cascade",
+      "events": [
+        { "t": 0, "type": "run.started", "data": {
+          "demoId": "cascade", "title": "Cascade", "tier": "Default", "model": "hydrafusion",
+          "prompt": "quickly test this page with the browser tools", "expectedPattern": "cascade", "source": "reference",
+          "note": "The judge failed the first answer, so a stronger model repaired it. You pay for the rejected answer too.",
+          "reported": { "aiu": 285, "premiumRequests": 21 },
+          "models": {
+            "gpt-6.1-sol": { "name": "GPT-6.1 Sol", "prices": { "input": 200, "output": 1000 } },
+            "gpt-6-luna": { "name": "GPT-6 Luna", "prices": { "input": 10, "output": 50 } },
+            "claude-opus-5.5": { "name": "Claude Opus 5.5", "prices": { "input": 400, "output": 2000 } }
+          }
+        } },
+        { "t": 500, "type": "session.fusion_route_started", "data": { "syntheticModel": "hydrafusion", "policy": "standard", "turnKind": "user" } },
+        { "t": 1500, "type": "session.fusion_resolved", "data": {
+          "syntheticModel": "hydrafusion", "policy": "standard", "pattern": "cascade",
+          "hint": "Using Cascade: a solver will work on your request, followed by a review pass and fixes if needed.",
+          "primaryModel": "gpt-6.1-sol", "secondaryModel": "gpt-6-luna", "judgeModel": "gpt-6-luna", "repairModel": "claude-opus-5.5",
+          "phasePlan": [
+            { "kind": "primary", "role": "solver", "scope": "root", "conditional": false },
+            { "kind": "judge", "role": "judge", "scope": "review", "conditional": false },
+            { "kind": "repair", "role": "solver", "scope": "root", "conditional": true }
+          ]
+        } },
+        { "t": 1600, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-cascade:primary", "phaseKind": "primary", "role": "solver", "conversationScope": "root", "pattern": "cascade", "model": "gpt-6.1-sol" } },
+        { "t": 10000, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-cascade:primary", "phaseKind": "primary", "role": "solver", "conversationScope": "root", "model": "gpt-6.1-sol", "status": "succeeded", "content": "", "verdict": null, "durationMs": null, "usage": { "totalNanoAiu": 141000000000 }, "legacyPremium": 1 } },
+        { "t": 10100, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-cascade:judge", "phaseKind": "judge", "role": "judge", "conversationScope": "review", "pattern": "cascade", "model": "gpt-6-luna" } },
+        { "t": 13000, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-cascade:judge", "phaseKind": "judge", "role": "judge", "conversationScope": "review", "model": "gpt-6-luna", "status": "succeeded", "content": "", "verdict": "fail", "durationMs": null, "usage": { "totalNanoAiu": 200000000 }, "legacyPremium": 1 } },
+        { "t": 13100, "type": "session.fusion_handoff", "data": { "sourcePhaseId": "reference-cascade:judge", "targetPhaseId": "reference-cascade:repair", "targetModel": "claude-opus-5.5" } },
+        { "t": 13200, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-cascade:repair", "phaseKind": "repair", "role": "solver", "conversationScope": "root", "pattern": "cascade", "model": "claude-opus-5.5" } },
+        { "t": 21500, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-cascade:repair", "phaseKind": "repair", "role": "solver", "conversationScope": "root", "model": "claude-opus-5.5", "status": "succeeded", "content": "", "verdict": null, "durationMs": null, "usage": { "totalNanoAiu": 143000000000 }, "legacyPremium": 15 } },
+        { "t": 21600, "type": "session.fusion_completed", "data": { "pattern": "cascade", "syntheticModel": "hydrafusion", "phaseCount": 3, "totalNanoAiu": 285000000000, "outcome": "succeeded", "finalSourcePhaseId": "reference-cascade:repair", "finalSourceModel": "claude-opus-5.5" } },
+        { "t": 21700, "type": "run.finished", "data": { "ok": true, "durationMs": null } }
+      ]
+    },
+    {
+      "id": "reference-single-max",
+      "title": "Single, Max tier (reference run)",
+      "source": "reference",
+      "demoId": "single",
+      "events": [
+        { "t": 0, "type": "run.started", "data": {
+          "demoId": "single", "title": "Single", "tier": "Max", "model": "hydrafusion-max",
+          "prompt": "quickly test this page with the browser tools", "expectedPattern": "single", "source": "reference",
+          "note": "One model did the whole job: one premium request, but an expensive model per token.",
+          "reported": { "aiu": 74, "premiumRequests": 1 },
+          "models": {
+            "gpt-6-astra": { "name": "GPT-6 Astra", "prices": { "input": 1000, "output": 5000 } }
+          }
+        } },
+        { "t": 500, "type": "session.fusion_route_started", "data": { "syntheticModel": "hydrafusion-max", "turnKind": "user" } },
+        { "t": 1500, "type": "session.fusion_resolved", "data": {
+          "syntheticModel": "hydrafusion-max", "pattern": "single",
+          "hint": "Using Single: one solver will work on your request.",
+          "primaryModel": "gpt-6-astra", "secondaryModel": null,
+          "phasePlan": [ { "kind": "primary", "role": "solver", "scope": "root", "conditional": false } ]
+        } },
+        { "t": 1600, "type": "assistant.fusion_phase_started", "data": { "phaseId": "reference-single:primary", "phaseKind": "primary", "role": "solver", "conversationScope": "root", "pattern": "single", "model": "gpt-6-astra" } },
+        { "t": 12000, "type": "assistant.fusion_phase_completed", "data": { "phaseId": "reference-single:primary", "phaseKind": "primary", "role": "solver", "conversationScope": "root", "model": "gpt-6-astra", "status": "succeeded", "content": "", "verdict": null, "durationMs": null, "usage": { "totalNanoAiu": 74000000000 }, "legacyPremium": 1 } },
+        { "t": 12100, "type": "session.fusion_completed", "data": { "pattern": "single", "syntheticModel": "hydrafusion-max", "phaseCount": 1, "totalNanoAiu": 74000000000, "outcome": "succeeded", "finalSourcePhaseId": "reference-single:primary", "finalSourceModel": "gpt-6-astra" } },
+        { "t": 12200, "type": "run.finished", "data": { "ok": true, "durationMs": null } }
+      ]
+    }
+  ]
+}

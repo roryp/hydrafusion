@@ -1,0 +1,6 @@
+node_modules/
+.azure/
+# Live runs can include local paths and full answers. Remove these lines to commit your recordings.
+runs/*
+!runs/.gitkeep
+*.log

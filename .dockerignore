@@ -1,0 +1,8 @@
+node_modules
+.git
+.azure
+.vscode
+runs/*
+!runs/.gitkeep
+test
+*.log
