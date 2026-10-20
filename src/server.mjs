@@ -1,5 +1,5 @@
 // Serves the dashboard, the demo page and a small JSON API:
-//   GET  /api/config              what this server allows, and the live run in progress, if any
+//   GET  /api/config              what this server allows, and the live runs in progress
 //   GET  /api/demos               the three demos
 //   GET  /api/recordings          reference runs and saved live runs
 //   GET  /api/recordings/:id      one recording, for replay
@@ -15,6 +15,7 @@
 //   ALLOWED_HOSTS           extra host names the API answers to, comma-separated (for example the Azure host name)
 //   COPILOT_GITHUB_TOKEN    GitHub token for live runs; without it they use the signed-in account
 //   LIVE_RUN_DAILY_LIMIT    most live runs to start per UTC day (0 means no limit)
+//   LIVE_RUN_CONCURRENCY_LIMIT  most live runs at once (default 5)
 
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -83,7 +84,7 @@ function utcDay() {
 function createLiveRuns({ runLive, save, auth, pageUrl }) {
   const runs = new Map();
   const startsByDay = new Map();
-  let active = null;
+  const active = new Set();
 
   const wake = (run) => {
     for (const resolve of run.waiters) resolve();
@@ -99,7 +100,11 @@ function createLiveRuns({ runLive, save, auth, pageUrl }) {
 
   return {
     get active() {
-      return active ? summary(active) : null;
+      return [...active].map(summary);
+    },
+
+    get activeCount() {
+      return active.size;
     },
 
     startsToday() {
@@ -123,28 +128,26 @@ function createLiveRuns({ runLive, save, auth, pageUrl }) {
         waiters: new Set(),
       };
       runs.set(run.id, run);
-      active = run;
+      active.add(run);
       startsByDay.set(utcDay(), this.startsToday() + 1);
 
       const onEvent = (event) => {
         run.events.push(event);
         wake(run);
       };
-      Promise.resolve()
+      run.completion = Promise.resolve()
         .then(() => runLive(demo, { pageUrl, auth, signal: run.controller.signal, onEvent }))
         .then(async (recording) => {
           await save(recording);
           run.recordingId = recording.id;
         })
         .catch((err) => {
-          if (!run.events.some((event) => event.type === 'run.finished')) {
-            onEvent({ t: run.events.at(-1)?.t ?? 0, type: 'run.finished', data: { ok: false, error: err.message } });
-          }
+          onEvent({ t: run.events.at(-1)?.t ?? 0, type: 'run.finished', data: { ok: false, error: err.message } });
         })
         .finally(() => {
           run.done = true;
           run.finishedAt = Date.now();
-          if (active === run) active = null;
+          active.delete(run);
           wake(run);
           prune();
         });
@@ -172,19 +175,24 @@ function createLiveRuns({ runLive, save, auth, pageUrl }) {
     stop(run) {
       run.controller.abort();
     },
+
+    async stopAll() {
+      const stopping = [...active];
+      for (const run of stopping) run.controller.abort();
+      await Promise.all(stopping.map((run) => run.completion));
+    },
   };
 }
 
 async function runChecksOnce(res, ctx) {
-  if (ctx.checking) return sendJson(res, 409, { error: 'The checks are already running.' });
-  ctx.checking = true;
+  // Everyone checks the same read-only page; share an in-flight check instead of launching more browsers.
+  ctx.checking ??= Promise.resolve()
+    .then(() => ctx.runChecks({ baseUrl: ctx.origin }))
+    .finally(() => { ctx.checking = null; });
   try {
-    const { runChecks } = await import('../checks/run-checks.mjs');
-    sendJson(res, 200, { results: await runChecks({ baseUrl: ctx.origin }) });
+    sendJson(res, 200, { results: await ctx.checking });
   } catch (err) {
     sendJson(res, 500, { error: err.message });
-  } finally {
-    ctx.checking = false;
   }
 }
 
@@ -192,6 +200,8 @@ function liveStatus(ctx) {
   return {
     enabled: ctx.auth.enabled,
     reason: ctx.auth.enabled ? null : 'Live runs are off because this server has no GitHub token.',
+    concurrencyLimit: ctx.concurrencyLimit,
+    activeCount: ctx.live.activeCount,
     dailyLimit: ctx.dailyLimit || null,
     remainingToday: ctx.dailyLimit ? Math.max(0, ctx.dailyLimit - ctx.live.startsToday()) : null,
   };
@@ -212,7 +222,7 @@ async function handleApi(req, res, url, ctx) {
   if (unsafe) return sendJson(res, 403, { error: unsafe });
 
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return sendJson(res, 200, { live: liveStatus(ctx), activeRun: ctx.live.active });
+    return sendJson(res, 200, { live: liveStatus(ctx), activeRuns: ctx.live.active });
   }
   if (req.method === 'GET' && url.pathname === '/api/demos') return sendJson(res, 200, { demos: DEMOS });
   if (req.method === 'GET' && url.pathname === '/api/recordings') return sendJson(res, 200, { recordings: await listRecordings() });
@@ -224,12 +234,15 @@ async function handleApi(req, res, url, ctx) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/live') {
-    const status = liveStatus(ctx);
-    if (!status.enabled) return sendJson(res, 503, { error: status.reason });
+    if (!ctx.auth.enabled) return sendJson(res, 503, { error: liveStatus(ctx).reason });
     const demo = findDemo((await readJson(req)).demo);
     if (!demo) return sendJson(res, 400, { error: 'Unknown demo.' });
-    if (ctx.live.active) return sendJson(res, 409, { error: 'Another live run is in progress.', activeRun: ctx.live.active });
+    // Check and reserve capacity together, after reading the body, with no await between them.
+    const status = liveStatus(ctx);
     if (status.remainingToday === 0) return sendJson(res, 429, { error: `This server has started its ${ctx.dailyLimit} live runs for today.` });
+    if (status.activeCount >= ctx.concurrencyLimit) {
+      return sendJson(res, 409, { error: `All ${ctx.concurrencyLimit} live-run slots are busy. Try again when a run finishes; replays and checks still work.` });
+    }
     return sendJson(res, 202, { run: ctx.live.start(demo) });
   }
 
@@ -293,12 +306,16 @@ export async function startServer({
   port = Number(process.env.PORT) || 4173,
   host = process.env.HOST || '127.0.0.1',
   allowedHosts = parseHosts(process.env.ALLOWED_HOSTS),
-  dailyLimit = Number(process.env.LIVE_RUN_DAILY_LIMIT) || 0,
+  dailyLimit = Number(process.env.LIVE_RUN_DAILY_LIMIT ?? 0),
+  concurrencyLimit = Number(process.env.LIVE_RUN_CONCURRENCY_LIMIT ?? 5),
   auth = liveAuth(),
   runLive = runLiveDemo,
+  runChecks = async (options) => (await import('../checks/run-checks.mjs')).runChecks(options),
   save = saveRecording,
 } = {}) {
-  const ctx = { checking: false, dailyLimit, auth };
+  if (!Number.isSafeInteger(dailyLimit) || dailyLimit < 0) throw new Error('LIVE_RUN_DAILY_LIMIT must be a non-negative integer.');
+  if (!Number.isSafeInteger(concurrencyLimit) || concurrencyLimit < 1) throw new Error('LIVE_RUN_CONCURRENCY_LIMIT must be a positive integer.');
+  const ctx = { checking: null, dailyLimit, concurrencyLimit, auth, runChecks };
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -334,12 +351,12 @@ export async function startServer({
   return {
     origin: ctx.origin,
     pageUrl: ctx.pageUrl,
-    close: () => new Promise((resolve) => {
-      const active = ctx.live.active;
-      if (active) ctx.live.stop(ctx.live.get(active.id));
+    close: async () => {
+      const stopping = ctx.live.stopAll();
       server.closeAllConnections?.();
-      server.close(() => resolve());
-    }),
+      await new Promise((resolve) => server.close(() => resolve()));
+      await Promise.all([stopping, ctx.checking]);
+    },
   };
 }
 

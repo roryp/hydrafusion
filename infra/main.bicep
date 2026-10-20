@@ -18,7 +18,11 @@ param copilotGitHubToken string = ''
 
 @minValue(0)
 @description('Most live runs the app starts per UTC day. 0 means no limit.')
-param liveRunDailyLimit int = 20
+param liveRunDailyLimit int = 100
+
+@minValue(1)
+@description('Most independent live runs at once on the single replica. Increase only after checking CPU, memory and Copilot rate limits.')
+param liveRunConcurrencyLimit int = 5
 
 var tags = { 'azd-env-name': environmentName }
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -39,6 +43,7 @@ module resources 'resources.bicep' = {
     webImageName: webImageName
     copilotGitHubToken: copilotGitHubToken
     liveRunDailyLimit: liveRunDailyLimit
+    liveRunConcurrencyLimit: liveRunConcurrencyLimit
   }
 }
 

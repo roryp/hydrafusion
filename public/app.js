@@ -25,6 +25,7 @@ import {
 
 // Long runs are replayed faster so a replay takes about this long.
 const REPLAY_TARGET_MS = 20_000;
+const LIVE_RUN_STORAGE_KEY = 'hydrafusion.live-run';
 
 const STATE_LABELS = {
   pending: 'Waiting',
@@ -43,6 +44,7 @@ const state = {
   views: { live: null, replay: null },
   showing: null,
   live: null,
+  startingLive: false,
   replay: null,
   recordings: [],
   checking: false,
@@ -110,22 +112,32 @@ function render() {
 
 // Server settings and the live-run note
 
-async function loadConfig() {
+async function loadConfig({ resume = false } = {}) {
   try {
     const res = await fetch('/api/config', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     state.config = await res.json();
   } catch {
     state.config = null;
   }
   renderLiveNote();
   renderCards();
-  const active = state.config?.activeRun;
-  if (active && !state.live) followRun(active);
+  if (resume && !state.live) {
+    try {
+      const run = JSON.parse(sessionStorage.getItem(LIVE_RUN_STORAGE_KEY));
+      if (run) {
+        if (typeof run.id !== 'string' || typeof run.title !== 'string') throw new Error('Invalid saved run.');
+        followRun(run);
+      }
+    } catch (err) {
+      showLiveMessage(`Could not restore this tab's live run: ${err.message}`);
+    }
+  }
 }
 
 function canStartLive() {
   const live = state.config?.live;
-  return !!live?.enabled && live.remainingToday !== 0 && !state.live;
+  return !!live?.enabled && live.remainingToday !== 0 && !state.live && !state.startingLive;
 }
 
 function renderLiveNote() {
@@ -138,6 +150,7 @@ function renderLiveNote() {
   else if (live.remainingToday === 0) text = `This server has started its ${live.dailyLimit} live runs for today. Replays and checks still work.`;
   else {
     text = 'Live runs spend AIU from the Copilot plan of the GitHub account this server uses. While one runs, you can replay a recorded run and come back to it.';
+    text += ` Up to ${live.concurrencyLimit} live runs can run at once. Each tab follows only its own run.`;
     if (live.remainingToday != null) text += ` ${plural(live.remainingToday, 'live run')} left today.`;
   }
   note.textContent = text;
@@ -590,13 +603,24 @@ function totalsLine(trace) {
 }
 
 // Live runs: start one, then follow its events until it's done. The run keeps going on the
-// server if this page closes, and reopening the page picks it up again.
+// server if this page closes. Reloading this tab resumes only the run it started.
+
+function rememberRun(run) {
+  try {
+    if (run) sessionStorage.setItem(LIVE_RUN_STORAGE_KEY, JSON.stringify(run));
+    else sessionStorage.removeItem(LIVE_RUN_STORAGE_KEY);
+  } catch (err) {
+    showLiveMessage(`Could not save this tab's run for reload: ${err.message}`);
+  }
+}
 
 async function runLive(demo) {
   if (!canStartLive()) return;
   const confirmed = window.confirm(`Run the ${demo.title} demo live?\n\nThis starts a new HydraFusion session (${demo.tier} tier) and spends AIU from the Copilot plan of the GitHub account this server uses.`);
   if (!confirmed) return;
   state.liveMessage = null;
+  state.startingLive = true;
+  renderCards();
   try {
     const res = await fetch('/api/live', {
       method: 'POST',
@@ -604,18 +628,21 @@ async function runLive(demo) {
       body: JSON.stringify({ demo: demo.id }),
     });
     const body = await res.json().catch(() => ({}));
-    if (res.status === 409 && body.activeRun) return followRun(body.activeRun);
     if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
     await followRun(body.run);
   } catch (err) {
     showLiveMessage(`The live run didn’t start: ${err.message}`);
     await loadConfig();
+  } finally {
+    state.startingLive = false;
+    renderCards();
   }
 }
 
 async function followRun({ id, title }) {
   if (state.live?.id === id) return;
   state.live = { id, stopping: false };
+  rememberRun({ id, title });
   startView('live', { title });
   let after = 0;
   let failures = 0;
@@ -628,9 +655,13 @@ async function followRun({ id, title }) {
       failures = 0;
       for (const event of body.events) handleEvent('live', event);
       after = body.next;
-      if (body.done) break;
+      if (body.done) {
+        rememberRun(null);
+        break;
+      }
     } catch (err) {
       if (err.fatal || ++failures > 5) {
+        if (err.fatal) rememberRun(null);
         const trace = state.views.live.trace;
         if (!isFinished(trace)) handleEvent('live', { t: trace.lastT, type: 'run.finished', data: { ok: false, error: err.message } });
         break;
@@ -778,4 +809,4 @@ renderLiveNote();
 setInterval(updateStatus, 1000);
 $('#run-checks').addEventListener('click', runChecks);
 $('#demo-page-url').textContent = new URL('/demo-page/', location.href).href;
-loadRecordings().then(loadConfig);
+loadRecordings().then(() => loadConfig({ resume: true }));

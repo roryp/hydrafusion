@@ -45,3 +45,29 @@ azd up
 ```
 
 Live runs use your GitHub CLI sign-in. Anyone with the app's URL can start one, so run `azd down` when you're done.
+
+## Demo capacity
+
+The Azure deployment admits **five independent live runs at once**, with a **100-start daily cap**. Each run gets its own Copilot session, isolated browser and output directory, and unique recording ID. Each dashboard tab follows only the run it started, including after a reload; it does not join or stop another visitor's run. A sixth start gets a clear busy message without spending a request. Replays remain available, and simultaneous requests for the fixed accessibility checks share one in-flight check rather than launching duplicate browsers.
+
+| Setting | Local default | Azure default |
+|---|---|---|
+| `LIVE_RUN_CONCURRENCY_LIMIT` | 5 | 5 (`liveRunConcurrencyLimit` in `infra/main.bicep`) |
+| `LIVE_RUN_DAILY_LIMIT` | 0 (unlimited) | 100 (`liveRunDailyLimit` in `infra/main.bicep`) |
+| Compute | Your machine | One warm replica, 2 vCPU / 4 GiB |
+
+Limits and live events are in memory. New recordings are on the container's temporary disk: restarting or deploying resets the counter and loses live state and new recordings; the bundled recordings remain. Finish active demos before deploying. Do **not** increase the replica count without first moving run ownership, events, admission limits and recordings to shared storage and routing poll/stop requests to the owning worker.
+
+HydraFusion uses the GitHub account's **Copilot service**, not Azure OpenAI or a Foundry model deployment. There is no Azure model TPM setting to raise. Copilot usage allowances and rate limits still apply across all five users, and extra container replicas do not increase them. The daily cap limits starts, not tokens or AIU spend; monitor the account's usage and keep the recorded demos available as a fallback. See [Copilot usage limits](https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/usage-limits).
+
+### Verify before the demo
+
+`npm test` includes five-user browser tests with a fake model (no AIU). Chrome or Edge must be installed, as for the app itself.
+
+After pushing and running `azd up`, test the real Azure endpoint:
+
+```sh
+npm run test:load -- https://your-app.azurecontainerapps.io 5
+```
+
+**This spends AIU.** It starts five independent browser-backed Critique/Cascade runs through the dashboard, verifies they overlap, rejects a sixth start without charging it, reloads a tab, replays a reference run, and requests all eight accessibility checks from each user. It requires successful model answers, separate replayable recordings, no session or dashboard errors, and a health-response p95 below three seconds. The command prints timings and AIU usage as JSON and stops its unfinished runs on failure. Run it when no visitors have active runs, with the user count equal to the deployed concurrency limit.

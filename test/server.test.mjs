@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import { after, before, describe, test } from 'node:test';
 import { startServer } from '../src/server.mjs';
+import { heldRuns, pendingPost } from './helpers.mjs';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -106,6 +108,7 @@ describe('live runs', () => {
       port: 0,
       auth: { enabled: true },
       dailyLimit: 2,
+      concurrencyLimit: 1,
       runLive: fakeRun,
       save: async (recording) => saved.push(recording),
     });
@@ -134,14 +137,171 @@ describe('live runs', () => {
 
     const busy = await start('cascade');
     assert.equal(busy.status, 409);
-    assert.equal((await busy.json()).activeRun.id, run.id);
-    assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRun.id, run.id);
+    assert.match((await busy.json()).error, /slots are busy/);
+    assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRuns[0].id, run.id);
 
     const { events, recordingId } = await follow(server.origin, run.id);
     assert.deepEqual(events.map((e) => e.type), ['run.started', 'session.fusion_resolved', 'run.finished']);
     assert.equal(recordingId, 'test-single');
     assert.equal(saved.at(-1).id, 'test-single');
-    assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRun, null);
+    assert.deepEqual((await (await fetch(`${server.origin}/api/config`)).json()).activeRuns, []);
+  });
+
+  describe('concurrent users', () => {
+    test('admits five independent runs, rejects a sixth, and stops only the selected run', async (t) => {
+      const runner = heldRuns();
+      const saved = [];
+      const server = await startServer({ port: 0, auth: { enabled: true }, dailyLimit: 10, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
+      t.after(() => server.close());
+      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"cascade"}' });
+      const responses = await Promise.all(Array.from({ length: 5 }, start));
+      assert.deepEqual(responses.map((res) => res.status), [202, 202, 202, 202, 202]);
+      const runs = await Promise.all(responses.map(async (res) => (await res.json()).run));
+      assert.equal(new Set(runs.map((run) => run.id)).size, 5);
+      let config = await (await fetch(`${server.origin}/api/config`)).json();
+      assert.equal(config.live.concurrencyLimit, 5);
+      assert.equal(config.live.activeCount, 5);
+      assert.equal(config.live.remainingToday, 5);
+      assert.equal((await start()).status, 409);
+
+      await fetch(`${server.origin}/api/live/${runs[0].id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const stopped = await follow(server.origin, runs[0].id);
+      assert.equal(stopped.events.at(-1).data.ok, false);
+      assert.equal(runner.runs.filter((run) => run.signal.aborted).length, 1);
+      config = await (await fetch(`${server.origin}/api/config`)).json();
+      assert.equal(config.live.activeCount, 4);
+      assert.equal(config.live.remainingToday, 5, 'rejected starts must not consume the daily allowance');
+
+      const replacement = await start();
+      assert.equal(replacement.status, 202);
+      runs.push((await replacement.json()).run);
+      for (const run of runner.runs) run.finish();
+      const completed = await Promise.all(runs.map((run) => follow(server.origin, run.id)));
+      assert.equal(new Set(completed.map((run) => run.recordingId)).size, 6);
+      assert.equal(saved.length, 6);
+      for (const result of completed) {
+        const started = result.events.find((event) => event.type === 'run.started');
+        assert.equal(started.data.marker, result.recordingId, 'events must belong to the same recording');
+        assert.equal(result.events.filter((event) => event.type === 'run.started').length, 1);
+      }
+      assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.activeCount, 0);
+    });
+
+    test('checks the daily cap after concurrent request bodies finish arriving', async (t) => {
+      const runner = heldRuns();
+      const server = await startServer({ port: 0, auth: { enabled: true }, dailyLimit: 1, runLive: runner.runLive, save: async () => {} });
+      t.after(() => server.close());
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/live'));
+      await Promise.all(requests.map((req) => req.ready));
+      for (const req of requests) req.send({ demo: 'single' });
+      const responses = await Promise.all(requests.map((req) => req.response));
+      assert.deepEqual(responses.map((res) => res.status).sort(), [202, 429, 429, 429, 429]);
+      assert.equal(runner.runs.length, 1);
+      assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.remainingToday, 0);
+    });
+
+    test('keeps the slot occupied until the recording is saved', async (t) => {
+      const saving = Promise.withResolvers();
+      const startedSaving = Promise.withResolvers();
+      const server = await startServer({
+        port: 0, auth: { enabled: true }, concurrencyLimit: 1, runLive: fakeRun,
+        save: async () => { startedSaving.resolve(); await saving.promise; },
+      });
+      t.after(async () => { saving.resolve(); await server.close(); });
+      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' });
+      const { run } = await (await start()).json();
+      await startedSaving.promise;
+      assert.equal((await start()).status, 409);
+      saving.resolve();
+      await follow(server.origin, run.id);
+      assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.activeCount, 0);
+    });
+
+    test('reports runner and save failures and releases their slots', async (t) => {
+      for (const failure of ['runner', 'save']) {
+        const server = await startServer({
+          port: 0, auth: { enabled: true }, concurrencyLimit: 1,
+          runLive: failure === 'runner' ? async () => { throw new Error('Runner failed.'); } : fakeRun,
+          save: async () => { throw new Error('Save failed.'); },
+        });
+        t.after(() => server.close());
+        const { run } = await (await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' })).json();
+        const result = await follow(server.origin, run.id);
+        assert.equal(result.events.at(-1).data.ok, false);
+        assert.match(result.events.at(-1).data.error, /failed/);
+        assert.equal(result.recordingId, null);
+        assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.activeCount, 0);
+      }
+    });
+
+    test('shutdown aborts and waits for every active run', async () => {
+      const runner = heldRuns();
+      const saved = [];
+      const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
+      try {
+        await Promise.all(Array.from({ length: 5 }, () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' })));
+      } finally {
+        await server.close();
+      }
+      assert.equal(runner.runs.length, 5);
+      assert.ok(runner.runs.every((run) => run.signal.aborted));
+      assert.equal(saved.length, 5);
+    });
+
+    test('shares concurrent checks and allows a fresh execution afterwards', async (t) => {
+      const checking = Promise.withResolvers();
+      let calls = 0;
+      const results = [{ id: randomUUID(), matchesExpected: true }];
+      const server = await startServer({
+        port: 0, auth: { enabled: false },
+        runChecks: async () => { calls++; await checking.promise; return results; },
+      });
+      t.after(async () => { checking.resolve(); await server.close(); });
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks'));
+      await Promise.all(requests.map((req) => req.ready));
+      for (const req of requests) req.send({});
+      assert.equal(calls, 1);
+      checking.resolve();
+      const responses = await Promise.all(requests.map((req) => req.response));
+      for (const res of responses) {
+        assert.equal(res.status, 200);
+        assert.deepEqual(res.body.results, results);
+      }
+      assert.equal(calls, 1);
+      const next = await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      assert.equal(next.status, 200);
+      assert.equal(calls, 2);
+    });
+
+    test('reports shared check errors to every caller and permits retry', async (t) => {
+      const checking = Promise.withResolvers();
+      let calls = 0;
+      const server = await startServer({
+        port: 0, auth: { enabled: false },
+        runChecks: async () => { calls++; await checking.promise; throw new Error('Browser unavailable.'); },
+      });
+      t.after(async () => { checking.resolve(); await server.close(); });
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks'));
+      await Promise.all(requests.map((req) => req.ready));
+      for (const req of requests) req.send({});
+      checking.resolve();
+      for (const res of await Promise.all(requests.map((req) => req.response))) {
+        assert.equal(res.status, 500);
+        assert.equal(res.body.error, 'Browser unavailable.');
+      }
+      assert.equal(calls, 1);
+      assert.equal((await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 500);
+      assert.equal(calls, 2);
+    });
+
+    test('rejects invalid limits rather than silently removing spending or capacity guards', async () => {
+      for (const concurrencyLimit of [0, -1, 1.5, NaN, Infinity]) {
+        await assert.rejects(startServer({ port: 0, concurrencyLimit }), /CONCURRENCY_LIMIT/);
+      }
+      for (const dailyLimit of [-1, 1.5, NaN, Infinity]) {
+        await assert.rejects(startServer({ port: 0, dailyLimit }), /DAILY_LIMIT/);
+      }
+    });
   });
 
   test('can be stopped', async () => {

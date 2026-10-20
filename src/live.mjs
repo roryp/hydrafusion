@@ -2,6 +2,7 @@
 // the workflow HydraFusion picked, each pass as it runs, and what each pass cost.
 
 import { CopilotClient } from '@github/copilot-sdk';
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -61,13 +62,13 @@ export function liveAuth(env = process.env) {
   return { gitHubToken, useLoggedInUser, enabled: !!gitHubToken || useLoggedInUser };
 }
 
-export function browserServerConfig(pageUrl) {
+export function browserServerConfig(pageUrl, id = randomUUID()) {
   const args = [
     path.join(ROOT, 'src', 'browser-mcp.mjs'),
     '--isolated',
     '--browser', process.env.HF_BROWSER || 'chrome',
     '--viewport-size', '1280x800',
-    '--output-dir', path.join(RUNS_DIR, 'playwright-mcp'),
+    '--output-dir', path.join(RUNS_DIR, 'playwright-mcp', id),
   ];
   if (!process.env.HF_HEADED) args.push('--headless');
   if (process.env.BROWSER_NO_SANDBOX) args.push('--no-sandbox');
@@ -228,7 +229,7 @@ function settles(promise, ms) {
 }
 
 function runId(demo, startedAt) {
-  return `${startedAt.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19)}-${demo.id}`;
+  return `${startedAt.toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19)}-${demo.id}-${randomUUID()}`;
 }
 
 /**
@@ -237,6 +238,7 @@ function runId(demo, startedAt) {
  */
 export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, auth = liveAuth() } = {}) {
   const startedAt = new Date();
+  const id = runId(demo, startedAt);
   const events = [];
   const emit = (type, data) => {
     const event = { t: Date.now() - startedAt.getTime(), type, data };
@@ -280,7 +282,7 @@ export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, a
       workingDirectory: ROOT,
       systemMessage: { mode: 'append', content: READ_ONLY_NOTE },
       disabledMcpServers: await userMcpServerNames(client),
-      mcpServers: { [BROWSER_SERVER]: browserServerConfig(pageUrl) },
+      mcpServers: { [BROWSER_SERVER]: browserServerConfig(pageUrl, id) },
       onPermissionRequest: readOnlyPermissions,
     });
 
@@ -293,6 +295,7 @@ export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, a
     const onAbort = () => session?.abort().catch(() => {});
     signal?.addEventListener('abort', onAbort, { once: true });
     try {
+      if (signal?.aborted) throw new Error('Stopped.');
       await session.sendAndWait(
         {
           prompt: demo.prompt,
@@ -318,7 +321,7 @@ export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, a
   if (startedEvent) startedEvent.data = { ...startedEvent.data, models: usedModels(events, catalog) };
 
   return {
-    id: runId(demo, startedAt),
+    id,
     title: `${demo.title} demo, ${demo.tier} tier (live, ${startedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC)`,
     source: 'live',
     demoId: demo.id,
