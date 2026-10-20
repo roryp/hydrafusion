@@ -6,7 +6,7 @@ HydraFusion is a GitHub Copilot model, in research preview, that plans each requ
 
 ## How it works
 
-![Architecture diagram. Your browser shows the dashboard, served by a web server in one Azure Container App. When you run a demo, the server starts a Copilot SDK session on HydraFusion in GitHub Copilot, which picks a pattern and a model for each pass. The passes test the demo page through Playwright MCP and headless Chrome. The route, passes and cost stream back to the dashboard, and each run is saved for replay. The accessibility checks test the same page without AI.](docs/architecture.png)
+![Architecture diagram. The dashboard in your browser talks to a Node.js app, with a web server and the Copilot SDK, in an Azure Container App. The app sends the prompt to HydraFusion in GitHub Copilot, which picks a pattern and models and sends back the passes and cost. For tool calls and the accessibility checks, the app drives headless Chrome with Playwright, which tests the demo page.](docs/architecture.png)
 
 A live run, step by step:
 
