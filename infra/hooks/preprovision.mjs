@@ -1,9 +1,7 @@
-// azd runs this before it provisions Azure resources. It sets two azd environment values:
-//   COPILOT_GITHUB_TOKEN  the GitHub CLI's token (gh auth token), so live runs work with no extra setup
-//   LIVE_RUN_KEY          a random key the dashboard needs before it can start live runs
+// azd runs this before it provisions Azure resources. It sets COPILOT_GITHUB_TOKEN in the azd
+// environment to the GitHub CLI's token (gh auth token), so live runs work with no extra setup.
 // A fine-grained token you set yourself (github_pat_...) is kept. The token is never printed.
 import { execFileSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
 
 const onWindows = process.platform === 'win32';
 
@@ -38,9 +36,4 @@ if (current.startsWith('github_pat_')) {
   } else {
     console.warn('Live runs will be off: the GitHub CLI has no token. Run "gh auth login", then "azd provision" to turn them on.');
   }
-}
-
-if (!process.env.LIVE_RUN_KEY?.trim()) {
-  setAzdValue('LIVE_RUN_KEY', randomBytes(24).toString('base64url'));
-  console.log('Live runs: made a new access key (LIVE_RUN_KEY).');
 }

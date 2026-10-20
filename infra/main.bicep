@@ -16,10 +16,6 @@ param webImageName string = ''
 @description('GitHub token with Copilot access for live runs. The preprovision hook takes it from the GitHub CLI. Leave empty to turn live runs off.')
 param copilotGitHubToken string = ''
 
-@secure()
-@description('Key the dashboard needs before it can start or stop live runs. The preprovision hook makes one.')
-param liveRunKey string = ''
-
 @minValue(0)
 @description('Most live runs the app starts per UTC day. 0 means no limit.')
 param liveRunDailyLimit int = 20
@@ -42,7 +38,6 @@ module resources 'resources.bicep' = {
     resourceToken: resourceToken
     webImageName: webImageName
     copilotGitHubToken: copilotGitHubToken
-    liveRunKey: liveRunKey
     liveRunDailyLimit: liveRunDailyLimit
   }
 }

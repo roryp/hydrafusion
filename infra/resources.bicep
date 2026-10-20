@@ -10,9 +10,6 @@ param webImageName string
 @secure()
 param copilotGitHubToken string
 
-@secure()
-param liveRunKey string
-
 param liveRunDailyLimit int
 
 var webName = 'ca-web-${resourceToken}'
@@ -72,15 +69,8 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-var secrets = concat(
-  empty(copilotGitHubToken) ? [] : [{ name: 'copilot-github-token', value: copilotGitHubToken }],
-  empty(liveRunKey) ? [] : [{ name: 'live-run-key', value: liveRunKey }]
-)
-
-var secretEnv = concat(
-  empty(copilotGitHubToken) ? [] : [{ name: 'COPILOT_GITHUB_TOKEN', secretRef: 'copilot-github-token' }],
-  empty(liveRunKey) ? [] : [{ name: 'LIVE_RUN_KEY', secretRef: 'live-run-key' }]
-)
+var secrets = empty(copilotGitHubToken) ? [] : [{ name: 'copilot-github-token', value: copilotGitHubToken }]
+var secretEnv = empty(copilotGitHubToken) ? [] : [{ name: 'COPILOT_GITHUB_TOKEN', secretRef: 'copilot-github-token' }]
 
 resource web 'Microsoft.App/containerApps@2024-03-01' = {
   name: webName

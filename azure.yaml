@@ -14,7 +14,7 @@ services:
       remoteBuild: true
 
 hooks:
-  # Takes a GitHub token from the GitHub CLI and makes the live-run access key.
+  # Takes a GitHub token from the GitHub CLI for live runs.
   preprovision:
     windows:
       shell: pwsh
@@ -22,7 +22,7 @@ hooks:
     posix:
       shell: sh
       run: node infra/hooks/preprovision.mjs
-  # Prints the dashboard link, with the access key for live runs.
+  # Prints the dashboard link.
   postdeploy:
     windows:
       shell: pwsh

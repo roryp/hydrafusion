@@ -1,5 +1,6 @@
 // Live runs are saved to runs/ so you can replay them later without spending AIU.
-// recordings/reference-runs.json holds one reference run of each pattern.
+// recordings/reference-runs.json holds one reference run of each pattern, and recordings/live/
+// holds recorded live runs of the three demos, which ship with the app so they're always there.
 
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -7,6 +8,7 @@ import { RECORDINGS_DIR, RUNS_DIR } from './paths.mjs';
 import { buildTrace, costRows, currentPattern, totals } from './shared/trace.mjs';
 
 const REFERENCE_FILE = path.join(RECORDINGS_DIR, 'reference-runs.json');
+const LIVE_DIRS = [RUNS_DIR, path.join(RECORDINGS_DIR, 'live')];
 const SAFE_ID = /^[A-Za-z0-9._-]+$/;
 
 export async function loadReferenceRecordings() {
@@ -14,22 +16,28 @@ export async function loadReferenceRecordings() {
   return recordings;
 }
 
-async function loadLiveRecordings() {
+async function readRecordings(dir) {
   let files = [];
   try {
-    files = (await readdir(RUNS_DIR)).filter((name) => name.endsWith('.json'));
+    files = (await readdir(dir)).filter((name) => name.endsWith('.json'));
   } catch {
     return [];
   }
   const recordings = [];
   for (const file of files) {
     try {
-      recordings.push(JSON.parse(await readFile(path.join(RUNS_DIR, file), 'utf8')));
+      recordings.push(JSON.parse(await readFile(path.join(dir, file), 'utf8')));
     } catch {
       // Skip files that aren't recordings.
     }
   }
-  return recordings.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  return recordings;
+}
+
+async function loadLiveRecordings() {
+  const recordings = (await Promise.all(LIVE_DIRS.map(readRecordings))).flat();
+  const unique = [...new Map(recordings.map((recording) => [recording.id, recording])).values()];
+  return unique.sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
 }
 
 export function summarize(recording) {
@@ -62,11 +70,14 @@ export async function loadRecording(id) {
   if (!SAFE_ID.test(id)) return null;
   const reference = (await loadReferenceRecordings()).find((recording) => recording.id === id);
   if (reference) return reference;
-  try {
-    return JSON.parse(await readFile(path.join(RUNS_DIR, `${id}.json`), 'utf8'));
-  } catch {
-    return null;
+  for (const dir of LIVE_DIRS) {
+    try {
+      return JSON.parse(await readFile(path.join(dir, `${id}.json`), 'utf8'));
+    } catch {
+      // Not in this folder.
+    }
   }
+  return null;
 }
 
 export async function latestLiveRecording(demoId) {

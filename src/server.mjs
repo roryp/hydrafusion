@@ -14,10 +14,9 @@
 //   PORT, HOST              where to listen (default 127.0.0.1:4173)
 //   ALLOWED_HOSTS           extra host names the API answers to, comma-separated (for example the Azure host name)
 //   COPILOT_GITHUB_TOKEN    GitHub token for live runs; without it they use the signed-in account
-//   LIVE_RUN_KEY            if set, starting or stopping a live run needs this key
 //   LIVE_RUN_DAILY_LIMIT    most live runs to start per UTC day (0 means no limit)
 
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import http from 'node:http';
@@ -74,11 +73,6 @@ async function readJson(req) {
     if (body.length > 10_000) throw new Error('Request body is too large.');
   }
   return body ? JSON.parse(body) : {};
-}
-
-function sameSecret(given, expected) {
-  const digest = (value) => createHash('sha256').update(String(value ?? '')).digest();
-  return timingSafeEqual(digest(given), digest(expected));
 }
 
 function utcDay() {
@@ -194,13 +188,10 @@ async function runChecksOnce(res, ctx) {
   }
 }
 
-function liveStatus(req, ctx) {
-  const keyAccepted = ctx.liveRunKey ? sameSecret(req.headers['x-live-key'], ctx.liveRunKey) : true;
+function liveStatus(ctx) {
   return {
     enabled: ctx.auth.enabled,
     reason: ctx.auth.enabled ? null : 'Live runs are off because this server has no GitHub token.',
-    needsKey: !!ctx.liveRunKey,
-    keyAccepted,
     dailyLimit: ctx.dailyLimit || null,
     remainingToday: ctx.dailyLimit ? Math.max(0, ctx.dailyLimit - ctx.live.startsToday()) : null,
   };
@@ -221,7 +212,7 @@ async function handleApi(req, res, url, ctx) {
   if (unsafe) return sendJson(res, 403, { error: unsafe });
 
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return sendJson(res, 200, { live: liveStatus(req, ctx), activeRun: ctx.live.active });
+    return sendJson(res, 200, { live: liveStatus(ctx), activeRun: ctx.live.active });
   }
   if (req.method === 'GET' && url.pathname === '/api/demos') return sendJson(res, 200, { demos: DEMOS });
   if (req.method === 'GET' && url.pathname === '/api/recordings') return sendJson(res, 200, { recordings: await listRecordings() });
@@ -233,9 +224,8 @@ async function handleApi(req, res, url, ctx) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/live') {
-    const status = liveStatus(req, ctx);
+    const status = liveStatus(ctx);
     if (!status.enabled) return sendJson(res, 503, { error: status.reason });
-    if (!status.keyAccepted) return sendJson(res, 403, { error: 'Live runs on this server need the access key.' });
     const demo = findDemo((await readJson(req)).demo);
     if (!demo) return sendJson(res, 400, { error: 'Unknown demo.' });
     if (ctx.live.active) return sendJson(res, 409, { error: 'Another live run is in progress.', activeRun: ctx.live.active });
@@ -252,7 +242,6 @@ async function handleApi(req, res, url, ctx) {
       return sendJson(res, 200, await ctx.live.poll(run, after, res));
     }
     if (req.method === 'POST' && liveMatch[2]) {
-      if (!liveStatus(req, ctx).keyAccepted) return sendJson(res, 403, { error: 'Stopping a live run needs the access key.' });
       ctx.live.stop(run);
       return sendJson(res, 202, { stopping: true });
     }
@@ -291,8 +280,6 @@ async function serveStatic(req, res, pathname) {
     'Content-Length': info.size,
     'Cache-Control': 'no-cache',
     'X-Content-Type-Options': 'nosniff',
-    // The dashboard link can carry the live-run key, so it is never sent on as a referrer.
-    'Referrer-Policy': 'no-referrer',
   });
   if (req.method === 'HEAD') return res.end();
   createReadStream(file).pipe(res);
@@ -306,13 +293,12 @@ export async function startServer({
   port = Number(process.env.PORT) || 4173,
   host = process.env.HOST || '127.0.0.1',
   allowedHosts = parseHosts(process.env.ALLOWED_HOSTS),
-  liveRunKey = process.env.LIVE_RUN_KEY || null,
   dailyLimit = Number(process.env.LIVE_RUN_DAILY_LIMIT) || 0,
   auth = liveAuth(),
   runLive = runLiveDemo,
   save = saveRecording,
 } = {}) {
-  const ctx = { checking: false, liveRunKey, dailyLimit, auth };
+  const ctx = { checking: false, dailyLimit, auth };
 
   const server = http.createServer(async (req, res) => {
     try {

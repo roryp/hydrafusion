@@ -1,0 +1,482 @@
+{
+  "id": "2026-10-20_07-59-20-single",
+  "title": "Single demo, Default tier (live, 2026-10-20 07:59 UTC)",
+  "source": "live",
+  "demoId": "single",
+  "savedAt": "2026-10-20T07:59:37.703Z",
+  "events": [
+    {
+      "t": 165,
+      "type": "run.started",
+      "data": {
+        "demoId": "single",
+        "title": "Single",
+        "tier": "Default",
+        "model": "hydrafusion",
+        "prompt": "In one sentence, what does WCAG 1.1.1 require? No tools.",
+        "expectedPattern": "single",
+        "pageUrl": null,
+        "source": "live",
+        "startedAt": "2026-10-20T07:59:20.745Z",
+        "models": {
+          "claude-opus-5.5": {
+            "name": "Claude Opus 5.5",
+            "prices": {
+              "input": 400,
+              "output": 2000,
+              "cacheRead": 20,
+              "cacheWrite": 500
+            }
+          },
+          "gpt-6-luna": {
+            "name": "GPT-6 Luna",
+            "prices": {
+              "input": 10,
+              "output": 50,
+              "cacheRead": 1,
+              "cacheWrite": 12.5
+            }
+          },
+          "gpt-5.6-luna": {
+            "name": "GPT-5.6 Luna",
+            "prices": {
+              "input": 20,
+              "output": 120,
+              "cacheRead": 2,
+              "cacheWrite": 25
+            }
+          }
+        }
+      }
+    },
+    {
+      "t": 945,
+      "type": "session.fusion_route_started",
+      "data": {
+        "attemptId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:route",
+        "turnKind": "user",
+        "syntheticModel": "hydrafusion",
+        "policy": "standard"
+      }
+    },
+    {
+      "t": 1080,
+      "type": "session.fusion_resolved",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "turnId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:turn",
+        "syntheticModel": "hydrafusion",
+        "policy": "standard",
+        "routeSource": "capi_plan",
+        "contractVersion": 1,
+        "planVersion": "2",
+        "policyVersion": "hydrafusion_v2_2026-10-07",
+        "modelUniverseVersion": null,
+        "ruleId": "critique_opus55_medium_luna6_high_opus55_high",
+        "scores": {
+          "reasoning": 0.2391,
+          "codeGen": 0.0097,
+          "debugging": 0.001,
+          "toolUse": 0.0243
+        },
+        "pattern": "critique",
+        "hint": "Using Critique: a solver will draft a result, a critic will review it, and the original solver will revise it if needed.",
+        "phasePlan": [
+          {
+            "kind": "draft",
+            "role": "solver",
+            "scope": "root",
+            "conditional": false
+          },
+          {
+            "kind": "critic",
+            "role": "critic",
+            "scope": "review",
+            "conditional": false
+          },
+          {
+            "kind": "revision",
+            "role": "solver",
+            "scope": "root",
+            "conditional": true
+          }
+        ],
+        "primaryModel": "claude-opus-5.5",
+        "secondaryModel": "gpt-6-luna",
+        "fallbackModel": "gpt-5.6-luna",
+        "followUpModel": "claude-opus-5.5",
+        "followUp": null,
+        "routingLatencyMs": 133.243431
+      }
+    },
+    {
+      "t": 1080,
+      "type": "assistant.fusion_phase_started",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "phaseKind": "draft",
+        "role": "solver",
+        "conversationScope": "root",
+        "pattern": "critique",
+        "model": "claude-opus-5.5"
+      }
+    },
+    {
+      "t": 2111,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "phaseKind": "draft",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 6
+      }
+    },
+    {
+      "t": 3248,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "phaseKind": "draft",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 309
+      }
+    },
+    {
+      "t": 3434,
+      "type": "assistant.usage",
+      "data": {
+        "model": "claude-opus-5.5",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "cost": 15,
+        "initiator": "user",
+        "effort": "medium",
+        "inputTokens": 36099,
+        "outputTokens": 138,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 36095,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 400000000000,
+            "tokenCount": 4,
+            "tokenType": "input",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 20000000000,
+            "tokenCount": 0,
+            "tokenType": "cache_read",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 500000000000,
+            "tokenCount": 36095,
+            "tokenType": "cache_write",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 2000000000000,
+            "tokenCount": 138,
+            "tokenType": "output",
+            "model": "claude-opus-5.5"
+          }
+        ],
+        "totalNanoAiu": 18325100000,
+        "durationMs": 2249
+      }
+    },
+    {
+      "t": 3436,
+      "type": "assistant.message",
+      "data": {
+        "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that any non-text content shown to users, such as images, icons, charts or controls, has a text alternative that serves the same purpose. The exceptions are decorative or purely visual formatting content, which should be marked so assistive technologies can ignore it, and cases like CAPTCHAs, tests and sensory experiences, which need at least a descriptive identification.",
+        "model": "claude-opus-5.5",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "toolCalls": 0
+      }
+    },
+    {
+      "t": 3441,
+      "type": "assistant.fusion_phase_completed",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:phase:0",
+        "phaseKind": "draft",
+        "role": "solver",
+        "conversationScope": "root",
+        "model": "claude-opus-5.5",
+        "status": "succeeded",
+        "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that any non-text content shown to users, such as images, icons, charts or controls, has a text alternative that serves the same purpose. The exceptions are decorative or purely visual formatting content, which should be marked so assistive technologies can ignore it, and cases like CAPTCHAs, tests and sensory experiences, which need at least a descriptive identification.",
+        "verdict": null,
+        "durationMs": 2359,
+        "usage": {
+          "requestCount": 1,
+          "inputTokens": 36099,
+          "outputTokens": 138,
+          "cachedTokens": 0,
+          "cacheWriteTokens": 36095,
+          "totalNanoAiu": 18325100000
+        },
+        "projectionMessage": {
+          "role": "assistant",
+          "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that any non-text content shown to users, such as images, icons, charts or controls, has a text alternative that serves the same purpose. The exceptions are decorative or purely visual formatting content, which should be marked so assistive technologies can ignore it, and cases like CAPTCHAs, tests and sensory experiences, which need at least a descriptive identification."
+        },
+        "projectionMode": "staged",
+        "reasoningEffort": "medium"
+      }
+    },
+    {
+      "t": 3441,
+      "type": "assistant.fusion_phase_started",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:critic",
+        "phaseKind": "critic",
+        "role": "critic",
+        "conversationScope": "review",
+        "pattern": "critique",
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "t": 14770,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:critic",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 751,
+        "outputTokens": 359,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 751,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 0,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 0,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 359,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 25460000,
+        "durationMs": 11322
+      }
+    },
+    {
+      "t": 14772,
+      "type": "assistant.fusion_phase_completed",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:critic",
+        "phaseKind": "critic",
+        "role": "critic",
+        "conversationScope": "review",
+        "model": "gpt-6-luna",
+        "status": "succeeded",
+        "content": "{\"assessment\":\"revise\",\"feedback\":\"The task explicitly asks for one sentence, but the draft has two sentences. Combine the explanation and exceptions into a single sentence.\",\"defect\":{\"target\":\"One-sentence task requirement\",\"evidence\":\"The draft ends its first sentence after “same purpose” and starts a second sentence with “The exceptions are…”.\"}}",
+        "verdict": null,
+        "durationMs": 11329,
+        "usage": {
+          "requestCount": 1,
+          "inputTokens": 751,
+          "outputTokens": 359,
+          "cachedTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalNanoAiu": 25460000
+        },
+        "projectionMessage": null,
+        "projectionMode": "none",
+        "reasoningEffort": "high"
+      }
+    },
+    {
+      "t": 14772,
+      "type": "session.fusion_handoff",
+      "data": {
+        "sourcePhaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:critic",
+        "targetPhaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "targetModel": "claude-opus-5.5"
+      }
+    },
+    {
+      "t": 14772,
+      "type": "assistant.fusion_phase_started",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "phaseKind": "revision",
+        "role": "solver",
+        "conversationScope": "root",
+        "pattern": "critique",
+        "model": "claude-opus-5.5"
+      }
+    },
+    {
+      "t": 15678,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "phaseKind": "revision",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 8
+      }
+    },
+    {
+      "t": 16521,
+      "type": "assistant.usage",
+      "data": {
+        "model": "claude-opus-5.5",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "cost": 15,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 36513,
+        "outputTokens": 125,
+        "cacheReadTokens": 36095,
+        "cacheWriteTokens": 414,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 400000000000,
+            "tokenCount": 4,
+            "tokenType": "input",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 20000000000,
+            "tokenCount": 36095,
+            "tokenType": "cache_read",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 500000000000,
+            "tokenCount": 414,
+            "tokenType": "cache_write",
+            "model": "claude-opus-5.5"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 2000000000000,
+            "tokenCount": 125,
+            "tokenType": "output",
+            "model": "claude-opus-5.5"
+          }
+        ],
+        "totalNanoAiu": 1180500000,
+        "durationMs": 1675
+      }
+    },
+    {
+      "t": 16522,
+      "type": "assistant.message",
+      "data": {
+        "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that all non-text content shown to users, such as images, icons, charts and controls, has a text alternative that serves the same purpose, except that decorative or purely visual content should be marked so assistive technologies can ignore it, and CAPTCHAs, tests and sensory experiences need at least a text description that identifies them.",
+        "model": "claude-opus-5.5",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "toolCalls": 0
+      }
+    },
+    {
+      "t": 16527,
+      "type": "assistant.fusion_phase_completed",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "phaseKind": "revision",
+        "role": "solver",
+        "conversationScope": "root",
+        "model": "claude-opus-5.5",
+        "status": "succeeded",
+        "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that all non-text content shown to users, such as images, icons, charts and controls, has a text alternative that serves the same purpose, except that decorative or purely visual content should be marked so assistive technologies can ignore it, and CAPTCHAs, tests and sensory experiences need at least a text description that identifies them.",
+        "verdict": null,
+        "durationMs": 1753,
+        "usage": {
+          "requestCount": 1,
+          "inputTokens": 36513,
+          "outputTokens": 125,
+          "cachedTokens": 36095,
+          "cacheWriteTokens": 414,
+          "totalNanoAiu": 1180500000
+        },
+        "projectionMessage": {
+          "role": "assistant",
+          "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that all non-text content shown to users, such as images, icons, charts and controls, has a text alternative that serves the same purpose, except that decorative or purely visual content should be marked so assistive technologies can ignore it, and CAPTCHAs, tests and sensory experiences need at least a text description that identifies them."
+        },
+        "projectionMode": "staged",
+        "reasoningEffort": "high"
+      }
+    },
+    {
+      "t": 16529,
+      "type": "assistant.message",
+      "data": {
+        "content": "WCAG 1.1.1 (Non-text Content, Level A) requires that all non-text content shown to users, such as images, icons, charts and controls, has a text alternative that serves the same purpose, except that decorative or purely visual content should be marked so assistive technologies can ignore it, and CAPTCHAs, tests and sensory experiences need at least a text description that identifies them.",
+        "model": "claude-opus-5.5",
+        "phaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "toolCalls": 0
+      }
+    },
+    {
+      "t": 16532,
+      "type": "session.fusion_completed",
+      "data": {
+        "fusionId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc",
+        "commitId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:commit",
+        "turnId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:turn",
+        "syntheticModel": "hydrafusion",
+        "pattern": "critique",
+        "outcome": "completed",
+        "finalSourcePhaseId": "fusion-89ea3d42-acb2-42e6-a76f-06324e4ab1dc:revision",
+        "finalSourceModel": "claude-opus-5.5",
+        "followUpModel": "claude-opus-5.5",
+        "degradedReason": null,
+        "phaseCount": 3,
+        "requestCount": 3,
+        "inputTokens": 73363,
+        "outputTokens": 622,
+        "cachedTokens": 36095,
+        "cacheWriteTokens": 36509,
+        "totalNanoAiu": 19531060000,
+        "durationMs": 15585
+      }
+    },
+    {
+      "t": 16535,
+      "type": "run.finished",
+      "data": {
+        "ok": true,
+        "error": null,
+        "durationMs": 16535
+      }
+    }
+  ]
+}

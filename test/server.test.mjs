@@ -3,7 +3,6 @@ import http from 'node:http';
 import { after, before, describe, test } from 'node:test';
 import { startServer } from '../src/server.mjs';
 
-const KEY = 'test-key';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Stands in for a live run: no Copilot session and no AIU.
@@ -57,9 +56,17 @@ describe('static files and recordings', () => {
     }
   });
 
-  test('lists the reference runs', async () => {
+  test('lists the reference runs and a recorded live run of each demo', async () => {
     const { recordings } = await (await fetch(`${server.origin}/api/recordings`)).json();
     assert.deepEqual(recordings.filter((r) => r.source === 'reference').map((r) => r.pattern), ['critique', 'cascade', 'single']);
+    const live = recordings.filter((r) => r.source === 'live' && r.status === 'done');
+    for (const demo of ['single', 'critique', 'cascade']) {
+      const run = live.find((r) => r.demoId === demo);
+      assert.ok(run, `no recorded live run of the ${demo} demo`);
+      assert.ok(run.rows.length > 0 && run.aiu > 0, `${demo} run has no cost rows`);
+      const recording = await (await fetch(`${server.origin}/api/recordings/${run.id}`)).json();
+      assert.equal(recording.events.at(-1).type, 'run.finished');
+    }
   });
 
   test('refuses path traversal', async () => {
@@ -92,7 +99,6 @@ describe('live runs', () => {
     server = await startServer({
       port: 0,
       auth: { enabled: true },
-      liveRunKey: KEY,
       dailyLimit: 2,
       runLive: fakeRun,
       save: async (recording) => saved.push(recording),
@@ -106,26 +112,21 @@ describe('live runs', () => {
     body: JSON.stringify({ demo }),
   });
 
-  test('need the access key', async () => {
-    assert.equal((await start('single')).status, 403);
-    assert.equal((await start('single', { 'X-Live-Key': 'wrong' })).status, 403);
-    const config = await (await fetch(`${server.origin}/api/config`, { headers: { 'X-Live-Key': KEY } })).json();
-    assert.deepEqual([config.live.needsKey, config.live.keyAccepted, config.live.remainingToday], [true, true, 2]);
-  });
-
   test('refuse other sites and non-JSON requests', async () => {
-    assert.equal((await start('single', { 'X-Live-Key': KEY, Origin: 'https://example.com' })).status, 403);
-    const res = await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'text/plain', 'X-Live-Key': KEY }, body: '{"demo":"single"}' });
+    assert.equal((await start('single', { Origin: 'https://example.com' })).status, 403);
+    const res = await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: '{"demo":"single"}' });
     assert.equal(res.status, 403);
-    assert.equal((await start('nope', { 'X-Live-Key': KEY })).status, 400);
+    assert.equal((await start('nope')).status, 400);
+    const { live } = await (await fetch(`${server.origin}/api/config`)).json();
+    assert.deepEqual([live.enabled, live.remainingToday], [true, 2]);
   });
 
   test('run in the background, one at a time, and can be followed and saved', async () => {
-    const res = await start('single', { 'X-Live-Key': KEY });
+    const res = await start('single');
     assert.equal(res.status, 202);
     const { run } = await res.json();
 
-    const busy = await start('cascade', { 'X-Live-Key': KEY });
+    const busy = await start('cascade');
     assert.equal(busy.status, 409);
     assert.equal((await busy.json()).activeRun.id, run.id);
     assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRun.id, run.id);
@@ -137,18 +138,16 @@ describe('live runs', () => {
     assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRun, null);
   });
 
-  test('can be stopped with the key', async () => {
-    const { run } = await (await start('critique', { 'X-Live-Key': KEY })).json();
-    const stop = (headers) => fetch(`${server.origin}/api/live/${run.id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: '{}' });
-    assert.equal((await stop({})).status, 403);
-    assert.equal((await stop({ 'X-Live-Key': KEY })).status, 202);
+  test('can be stopped', async () => {
+    const { run } = await (await start('critique')).json();
+    const stop = await fetch(`${server.origin}/api/live/${run.id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(stop.status, 202);
     const { events } = await follow(server.origin, run.id);
     assert.deepEqual(events.at(-1).data, { ok: false, error: 'Stopped.', durationMs: 300 });
   });
 
   test('stop at the daily limit', async () => {
-    const res = await start('single', { 'X-Live-Key': KEY });
-    assert.equal(res.status, 429);
+    assert.equal((await start('single')).status, 429);
     assert.equal((await fetch(`${server.origin}/api/live/00000000-0000-0000-0000-000000000000`)).status, 404);
   });
 });

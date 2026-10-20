@@ -1,0 +1,1529 @@
+{
+  "id": "2026-10-20_07-59-38-cascade",
+  "title": "Cascade demo, Default tier (live, 2026-10-20 07:59 UTC)",
+  "source": "live",
+  "demoId": "cascade",
+  "savedAt": "2026-10-20T08:02:46.978Z",
+  "events": [
+    {
+      "t": 149,
+      "type": "run.started",
+      "data": {
+        "demoId": "cascade",
+        "title": "Cascade",
+        "tier": "Default",
+        "model": "hydrafusion",
+        "prompt": "quickly test this page with the browser tools",
+        "expectedPattern": "cascade",
+        "pageUrl": "http://127.0.0.1:8080/demo-page/",
+        "source": "live",
+        "startedAt": "2026-10-20T07:59:38.945Z",
+        "models": {
+          "gpt-6.1-sol": {
+            "name": "GPT-6.1 Sol",
+            "prices": {
+              "input": 200,
+              "output": 1000,
+              "cacheRead": 10,
+              "cacheWrite": 250
+            }
+          },
+          "gpt-6-luna": {
+            "name": "GPT-6 Luna",
+            "prices": {
+              "input": 10,
+              "output": 50,
+              "cacheRead": 1,
+              "cacheWrite": 12.5
+            }
+          },
+          "claude-opus-5.5": {
+            "name": "Claude Opus 5.5",
+            "prices": {
+              "input": 400,
+              "output": 2000,
+              "cacheRead": 20,
+              "cacheWrite": 500
+            }
+          },
+          "gpt-5.6-luna": {
+            "name": "GPT-5.6 Luna",
+            "prices": {
+              "input": 20,
+              "output": 120,
+              "cacheRead": 2,
+              "cacheWrite": 25
+            }
+          }
+        }
+      }
+    },
+    {
+      "t": 851,
+      "type": "session.fusion_route_started",
+      "data": {
+        "attemptId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:route",
+        "turnKind": "user",
+        "syntheticModel": "hydrafusion",
+        "policy": "standard"
+      }
+    },
+    {
+      "t": 951,
+      "type": "session.fusion_resolved",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "turnId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:turn",
+        "syntheticModel": "hydrafusion",
+        "policy": "standard",
+        "routeSource": "capi_plan",
+        "contractVersion": 1,
+        "planVersion": "2",
+        "policyVersion": "hydrafusion_v2_2026-10-07",
+        "modelUniverseVersion": null,
+        "ruleId": "default",
+        "scores": {
+          "reasoning": 0.1411,
+          "codeGen": 0.0815,
+          "debugging": 0.0032,
+          "toolUse": 0.2281
+        },
+        "pattern": "cascade",
+        "hint": "Using Cascade: a solver will work on your request, followed by a review pass and fixes if needed.",
+        "phasePlan": [
+          {
+            "kind": "primary",
+            "role": "solver",
+            "scope": "root",
+            "conditional": false
+          },
+          {
+            "kind": "judge",
+            "role": "judge",
+            "scope": "review",
+            "conditional": false
+          },
+          {
+            "kind": "repair",
+            "role": "solver",
+            "scope": "root",
+            "conditional": true
+          }
+        ],
+        "primaryModel": "gpt-6.1-sol",
+        "secondaryModel": "gpt-6-luna",
+        "fallbackModel": "gpt-5.6-luna",
+        "followUpModel": "gpt-6.1-sol",
+        "followUp": null,
+        "routingLatencyMs": 98.515593,
+        "judgeModel": "gpt-6-luna",
+        "repairModel": "claude-opus-5.5"
+      }
+    },
+    {
+      "t": 952,
+      "type": "assistant.fusion_phase_started",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "role": "solver",
+        "conversationScope": "root",
+        "pattern": "cascade",
+        "model": "gpt-6.1-sol"
+      }
+    },
+    {
+      "t": 3136,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 26
+      }
+    },
+    {
+      "t": 3620,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "medium",
+        "inputTokens": 19153,
+        "outputTokens": 34,
+        "cacheReadTokens": 14530,
+        "cacheWriteTokens": 4620,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 14530,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 4620,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 34,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 1334900000,
+        "durationMs": 2471
+      }
+    },
+    {
+      "t": 3621,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 3623,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_V85SDQdw0kdCm0xlnSxQIzFY",
+        "toolName": "browser_navigate",
+        "server": "browser",
+        "args": "{\"url\":\"http://127.0.0.1:8080/demo-page/\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 4179,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_V85SDQdw0kdCm0xlnSxQIzFY",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 9529,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 92
+      }
+    },
+    {
+      "t": 9653,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 19344,
+        "outputTokens": 244,
+        "cacheReadTokens": 19150,
+        "cacheWriteTokens": 191,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 19150,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 191,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 244,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 483850000,
+        "durationMs": 5415
+      }
+    },
+    {
+      "t": 9654,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 3
+      }
+    },
+    {
+      "t": 9656,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_IOB6jdYyDTnNyOUea9uWrvcN",
+        "toolName": "browser_snapshot",
+        "server": "browser",
+        "args": "{}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 9657,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ZV7HQURPPWiJzxqLj4lhrn0i",
+        "toolName": "browser_console_messages",
+        "server": "browser",
+        "args": "{\"level\":\"error\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 9658,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_HKREF6VdTnwh4wv6JMqYEOfQ",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({title:document.title, images:[...document.images].map(i=>({src:i.getAttribute('src'),alt:i.getAttribute('alt'),loaded:i.complete&&i.naturalWidth>0})), inputs:[...document.querySelectorAll('input,select,textarea')].ma...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 9681,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ZV7HQURPPWiJzxqLj4lhrn0i",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 9682,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_IOB6jdYyDTnNyOUea9uWrvcN",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 10183,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_HKREF6VdTnwh4wv6JMqYEOfQ",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 12598,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 850
+      }
+    },
+    {
+      "t": 12986,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 21059,
+        "outputTokens": 26,
+        "cacheReadTokens": 19341,
+        "cacheWriteTokens": 1715,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 19341,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 1715,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 26,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 648760000,
+        "durationMs": 2768
+      }
+    },
+    {
+      "t": 12987,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 12989,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_PPH7UJpsjaf73QL95KuqA93O",
+        "toolName": "browser_click",
+        "server": "browser",
+        "args": "{\"target\":\"e43\",\"element\":\"Select Country dropdown\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 13560,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_PPH7UJpsjaf73QL95KuqA93O",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 15685,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 926
+      }
+    },
+    {
+      "t": 16733,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1240
+      }
+    },
+    {
+      "t": 17763,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1470
+      }
+    },
+    {
+      "t": 18781,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1729
+      }
+    },
+    {
+      "t": 18941,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 21204,
+        "outputTokens": 215,
+        "cacheReadTokens": 21056,
+        "cacheWriteTokens": 145,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 21056,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 145,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 215,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 462410000,
+        "durationMs": 5350
+      }
+    },
+    {
+      "t": 18943,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 18944,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ry5w2x4vCbAcmNxihXPiPDZo",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({countryWidget:document.querySelector('.custom-select')?.outerHTML || [...document.querySelectorAll('[role=\\\"button\\\"]')].find(e=>e.textContent.includes('Select Country'))?.parentElement.outerHTML, skipTarget:!!docume...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 19463,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ry5w2x4vCbAcmNxihXPiPDZo",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 22432,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1756
+      }
+    },
+    {
+      "t": 22942,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 22363,
+        "outputTokens": 36,
+        "cacheReadTokens": 21201,
+        "cacheWriteTokens": 1159,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 21201,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 1159,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 36,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 538360000,
+        "durationMs": 3448
+      }
+    },
+    {
+      "t": 22943,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 22944,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ZrFDohDMzCxiqxk35aC3FPLV",
+        "toolName": "browser_click",
+        "server": "browser",
+        "args": "{\"target\":\"[role=\\\"menuitem\\\"]:nth-child(2)\",\"element\":\"Canada country option\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 23000,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ZrFDohDMzCxiqxk35aC3FPLV",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 26265,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1864
+      }
+    },
+    {
+      "t": 26519,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 22527,
+        "outputTokens": 20,
+        "cacheReadTokens": 22360,
+        "cacheWriteTokens": 164,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 22360,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 164,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 20,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 285200000,
+        "durationMs": 3488
+      }
+    },
+    {
+      "t": 26521,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 26522,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_GHKBmvBV4Sw7pOUHmBVzsYxz",
+        "toolName": "browser_handle_dialog",
+        "server": "browser",
+        "args": "{\"accept\":true}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 27039,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_GHKBmvBV4Sw7pOUHmBVzsYxz",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 34397,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 1903
+      }
+    },
+    {
+      "t": 35407,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 2254
+      }
+    },
+    {
+      "t": 36392,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 22605,
+        "outputTokens": 258,
+        "cacheReadTokens": 22524,
+        "cacheWriteTokens": 78,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 22524,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 78,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 258,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 503340000,
+        "durationMs": 9322
+      }
+    },
+    {
+      "t": 36394,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 36395,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_PjPEOV5jVZQ29tQAE8yEq2s6",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({dropdownClosed:getComputedStyle(document.getElementById('dropdown')).display==='none',countryButton:[...document.querySelectorAll('[role=\\\"button\\\"]')].find(e=>e.hasAttribute('aria-haspopup'))?.textContent.trim(),unl...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 36909,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_PjPEOV5jVZQ29tQAE8yEq2s6",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 39650,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 2537
+      }
+    },
+    {
+      "t": 40686,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 2759
+      }
+    },
+    {
+      "t": 41725,
+      "type": "assistant.fusion_phase_activity",
+      "data": {
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "activity": "model_output",
+        "totalResponseSizeBytes": 3108
+      }
+    },
+    {
+      "t": 42724,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "cost": 1,
+        "initiator": "agent",
+        "effort": "medium",
+        "inputTokens": 23144,
+        "outputTokens": 169,
+        "cacheReadTokens": 22602,
+        "cacheWriteTokens": 539,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 200000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 22602,
+            "tokenType": "cache_read",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 250000000000,
+            "tokenCount": 539,
+            "tokenType": "cache_write",
+            "model": "gpt-6.1-sol"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000000,
+            "tokenCount": 169,
+            "tokenType": "output",
+            "model": "gpt-6.1-sol"
+          }
+        ],
+        "totalNanoAiu": 530370000,
+        "durationMs": 5782
+      }
+    },
+    {
+      "t": 42726,
+      "type": "assistant.message",
+      "data": {
+        "content": "**Quick browser check completed.** The page loads, and the country dropdown opens; selecting Canada shows an alert and closes the menu.\n\nFound these issues:\n- **Three missing assets (404):** `decorative-icon.png`, `important-chart.jpg`, and `background-video.mp4`.\n- **Form accessibility:** name, email, and message lack associated labels; email has no accessible name.\n- **Image accessibility:** the chart has no alt text.\n- **Structure:** headings start with H3 before H1, and the table has no header cells.\n- **Readability:** some text is only **8px**, and blinking text has a repeating one-second animation.\n- **Country selection:** after selecting Canada, the control still displays “Select Country.”\n\nThis was a brief smoke check, not a full accessibility audit.",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 0
+      }
+    },
+    {
+      "t": 42733,
+      "type": "assistant.fusion_phase_completed",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "phaseKind": "primary",
+        "role": "solver",
+        "conversationScope": "root",
+        "model": "gpt-6.1-sol",
+        "status": "succeeded",
+        "content": "**Quick browser check completed.** The page loads, and the country dropdown opens; selecting Canada shows an alert and closes the menu.\n\nFound these issues:\n- **Three missing assets (404):** `decorative-icon.png`, `important-chart.jpg`, and `background-video.mp4`.\n- **Form accessibility:** name, email, and message lack associated labels; email has no accessible name.\n- **Image accessibility:** the chart has no alt text.\n- **Structure:** headings start with H3 before H1, and the table has no header cells.\n- **Readability:** some text is only **8px**, and blinking text has a repeating one-second animation.\n- **Country selection:** after selecting Canada, the control still displays “Select Country.”\n\nThis was a brief smoke check, not a full accessibility audit.",
+        "verdict": null,
+        "durationMs": 41779,
+        "usage": {
+          "requestCount": 8,
+          "inputTokens": 171399,
+          "outputTokens": 1002,
+          "cachedTokens": 162764,
+          "cacheWriteTokens": 8611,
+          "totalNanoAiu": 4787190000
+        },
+        "projectionMessage": {
+          "role": "assistant",
+          "content": "**Quick browser check completed.** The page loads, and the country dropdown opens; selecting Canada shows an alert and closes the menu.\n\nFound these issues:\n- **Three missing assets (404):** `decorative-icon.png`, `important-chart.jpg`, and `background-video.mp4`.\n- **Form accessibility:** name, email, and message lack associated labels; email has no accessible name.\n- **Image accessibility:** the chart has no alt text.\n- **Structure:** headings start with H3 before H1, and the table has no header cells.\n- **Readability:** some text is only **8px**, and blinking text has a repeating one-second animation.\n- **Country selection:** after selecting Canada, the control still displays “Select Country.”\n\nThis was a brief smoke check, not a full accessibility audit."
+        },
+        "projectionMode": "staged",
+        "reasoningEffort": "medium"
+      }
+    },
+    {
+      "t": 42733,
+      "type": "assistant.fusion_phase_started",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "phaseKind": "judge",
+        "role": "judge",
+        "conversationScope": "review",
+        "pattern": "cascade",
+        "model": "gpt-6-luna"
+      }
+    },
+    {
+      "t": 70788,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 1552,
+        "outputTokens": 101,
+        "cacheReadTokens": 1066,
+        "cacheWriteTokens": 483,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 1066,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 483,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 101,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 12183500,
+        "durationMs": 27968
+      }
+    },
+    {
+      "t": 74116,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 1710,
+        "outputTokens": 127,
+        "cacheReadTokens": 1549,
+        "cacheWriteTokens": 158,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 1549,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 158,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 127,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 9904000,
+        "durationMs": 3321
+      }
+    },
+    {
+      "t": 77604,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 3894,
+        "outputTokens": 174,
+        "cacheReadTokens": 1707,
+        "cacheWriteTokens": 2184,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 1707,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 2184,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 174,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 37737000,
+        "durationMs": 3477
+      }
+    },
+    {
+      "t": 87554,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 14175,
+        "outputTokens": 792,
+        "cacheReadTokens": 3891,
+        "cacheWriteTokens": 10281,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 3,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 3891,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 10281,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 792,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 172033500,
+        "durationMs": 9933
+      }
+    },
+    {
+      "t": 187621,
+      "type": "assistant.usage",
+      "data": {
+        "model": "gpt-6-luna",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "cost": 1,
+        "initiator": "user",
+        "effort": "high",
+        "inputTokens": 19662,
+        "outputTokens": 967,
+        "cacheReadTokens": 14100,
+        "cacheWriteTokens": 5487,
+        "tokenDetails": [
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 10000000000,
+            "tokenCount": 75,
+            "tokenType": "input",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 1000000000,
+            "tokenCount": 14100,
+            "tokenType": "cache_read",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 12500000000,
+            "tokenCount": 5487,
+            "tokenType": "cache_write",
+            "model": "gpt-6-luna"
+          },
+          {
+            "batchSize": 1000000,
+            "costPerBatch": 50000000000,
+            "tokenCount": 967,
+            "tokenType": "output",
+            "model": "gpt-6-luna"
+          }
+        ],
+        "totalNanoAiu": 131787500,
+        "durationMs": 100047
+      }
+    },
+    {
+      "t": 187628,
+      "type": "assistant.fusion_phase_completed",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:judge",
+        "phaseKind": "judge",
+        "role": "judge",
+        "conversationScope": "review",
+        "model": "gpt-6-luna",
+        "status": "succeeded",
+        "content": "{\"score\":5,\"rationale\":\"The report is consistent with the demo page: its referenced assets are absent, the form fields and chart lack the noted accessibility features, and the dropdown code alerts on selection and closes without updating its displayed value. Browser snapshots and console logs in the workspace also corroborate that the page was opened and the dropdown tested.\"}",
+        "verdict": "accept",
+        "durationMs": 144893,
+        "usage": {
+          "requestCount": 5,
+          "inputTokens": 40993,
+          "outputTokens": 2161,
+          "cachedTokens": 22313,
+          "cacheWriteTokens": 18593,
+          "totalNanoAiu": 363645500
+        },
+        "projectionMessage": null,
+        "projectionMode": "none",
+        "reasoningEffort": "high"
+      }
+    },
+    {
+      "t": 187631,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187632,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_V85SDQdw0kdCm0xlnSxQIzFY",
+        "toolName": "browser_navigate",
+        "server": "browser",
+        "args": "{\"url\":\"http://127.0.0.1:8080/demo-page/\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187634,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_V85SDQdw0kdCm0xlnSxQIzFY",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187638,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 3
+      }
+    },
+    {
+      "t": 187639,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_IOB6jdYyDTnNyOUea9uWrvcN",
+        "toolName": "browser_snapshot",
+        "server": "browser",
+        "args": "{}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187640,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ZV7HQURPPWiJzxqLj4lhrn0i",
+        "toolName": "browser_console_messages",
+        "server": "browser",
+        "args": "{\"level\":\"error\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187642,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_HKREF6VdTnwh4wv6JMqYEOfQ",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({title:document.title, images:[...document.images].map(i=>({src:i.getAttribute('src'),alt:i.getAttribute('alt'),loaded:i.complete&&i.naturalWidth>0})), inputs:[...document.querySelectorAll('input,select,textarea')].ma...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187643,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ZV7HQURPPWiJzxqLj4lhrn0i",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187646,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_IOB6jdYyDTnNyOUea9uWrvcN",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187648,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_HKREF6VdTnwh4wv6JMqYEOfQ",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187651,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187652,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_PPH7UJpsjaf73QL95KuqA93O",
+        "toolName": "browser_click",
+        "server": "browser",
+        "args": "{\"target\":\"e43\",\"element\":\"Select Country dropdown\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187654,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_PPH7UJpsjaf73QL95KuqA93O",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187657,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187659,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ry5w2x4vCbAcmNxihXPiPDZo",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({countryWidget:document.querySelector('.custom-select')?.outerHTML || [...document.querySelectorAll('[role=\\\"button\\\"]')].find(e=>e.textContent.includes('Select Country'))?.parentElement.outerHTML, skipTarget:!!docume...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187661,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ry5w2x4vCbAcmNxihXPiPDZo",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187665,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187666,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_ZrFDohDMzCxiqxk35aC3FPLV",
+        "toolName": "browser_click",
+        "server": "browser",
+        "args": "{\"target\":\"[role=\\\"menuitem\\\"]:nth-child(2)\",\"element\":\"Canada country option\"}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187668,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_ZrFDohDMzCxiqxk35aC3FPLV",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187671,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187672,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_GHKBmvBV4Sw7pOUHmBVzsYxz",
+        "toolName": "browser_handle_dialog",
+        "server": "browser",
+        "args": "{\"accept\":true}",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187674,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_GHKBmvBV4Sw7pOUHmBVzsYxz",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187677,
+      "type": "assistant.message",
+      "data": {
+        "content": "",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 1
+      }
+    },
+    {
+      "t": 187678,
+      "type": "tool.execution_start",
+      "data": {
+        "toolCallId": "call_PjPEOV5jVZQ29tQAE8yEq2s6",
+        "toolName": "browser_evaluate",
+        "server": "browser",
+        "args": "{\"function\":\"() => ({dropdownClosed:getComputedStyle(document.getElementById('dropdown')).display==='none',countryButton:[...document.querySelectorAll('[role=\\\"button\\\"]')].find(e=>e.hasAttribute('aria-haspopup'))?.textContent.trim(),unl...",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187681,
+      "type": "tool.execution_complete",
+      "data": {
+        "toolCallId": "call_PjPEOV5jVZQ29tQAE8yEq2s6",
+        "success": true,
+        "error": null,
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0"
+      }
+    },
+    {
+      "t": 187685,
+      "type": "assistant.message",
+      "data": {
+        "content": "**Quick browser check completed.** The page loads, and the country dropdown opens; selecting Canada shows an alert and closes the menu.\n\nFound these issues:\n- **Three missing assets (404):** `decorative-icon.png`, `important-chart.jpg`, and `background-video.mp4`.\n- **Form accessibility:** name, email, and message lack associated labels; email has no accessible name.\n- **Image accessibility:** the chart has no alt text.\n- **Structure:** headings start with H3 before H1, and the table has no header cells.\n- **Readability:** some text is only **8px**, and blinking text has a repeating one-second animation.\n- **Country selection:** after selecting Canada, the control still displays “Select Country.”\n\nThis was a brief smoke check, not a full accessibility audit.",
+        "model": "gpt-6.1-sol",
+        "phaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "toolCalls": 0
+      }
+    },
+    {
+      "t": 187687,
+      "type": "session.fusion_completed",
+      "data": {
+        "fusionId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835",
+        "commitId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:commit",
+        "turnId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:turn",
+        "syntheticModel": "hydrafusion",
+        "pattern": "cascade",
+        "outcome": "completed",
+        "finalSourcePhaseId": "fusion-a3ae8627-0209-4a57-a4d3-f037db226835:phase:0",
+        "finalSourceModel": "gpt-6.1-sol",
+        "followUpModel": "gpt-6.1-sol",
+        "degradedReason": null,
+        "phaseCount": 2,
+        "requestCount": 13,
+        "inputTokens": 212392,
+        "outputTokens": 3163,
+        "cachedTokens": 185077,
+        "cacheWriteTokens": 27204,
+        "totalNanoAiu": 5150835500,
+        "durationMs": 186835
+      }
+    },
+    {
+      "t": 187691,
+      "type": "run.finished",
+      "data": {
+        "ok": true,
+        "error": null,
+        "durationMs": 187691
+      }
+    }
+  ]
+}

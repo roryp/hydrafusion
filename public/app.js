@@ -25,7 +25,6 @@ import {
 
 // Long runs are replayed faster so a replay takes about this long.
 const REPLAY_TARGET_MS = 20_000;
-const KEY_STORAGE = 'hydrafusion-live-key';
 
 const STATE_LABELS = {
   pending: 'Waiting',
@@ -39,16 +38,15 @@ const STATE_LABELS = {
 // Price per token compared with new input. Bar widths are relative to output (5×).
 const RELATIVE_PRICE = { cache_read: 0.1, input: 1, cache_write: 1.25, output: 5 };
 
+// The viewer has two views, so you can replay a recorded run while a live run keeps going.
 const state = {
-  trace: null,
-  run: null,
+  views: { live: null, replay: null },
+  showing: null,
   live: null,
   replay: null,
-  ticker: null,
   recordings: [],
   checking: false,
   config: null,
-  liveKey: null,
   liveMessage: null,
 };
 
@@ -72,6 +70,18 @@ function h(tag, attrs, ...children) {
 
 const truncate = (text, max) => (text && text.length > max ? `${text.slice(0, max - 1)}…` : text ?? '');
 const plural = (n, singular, pluralForm = `${singular}s`) => `${n} ${n === 1 ? singular : pluralForm}`;
+
+function currentView() {
+  return state.showing ? state.views[state.showing] : null;
+}
+
+function shownTrace() {
+  return currentView()?.trace ?? null;
+}
+
+function liveInProgress() {
+  return !!state.live && !!state.views.live && !isFinished(state.views.live.trace);
+}
 
 function announce(message) {
   const region = $('#announcer');
@@ -98,60 +108,24 @@ function render() {
   renderViewer();
 }
 
-// The access key for live runs. A link like /?key=... stores it, and the key leaves the address bar.
-
-function initLiveKey() {
-  try {
-    const url = new URL(location.href);
-    const fromUrl = url.searchParams.get('key');
-    if (fromUrl) {
-      localStorage.setItem(KEY_STORAGE, fromUrl);
-      url.searchParams.delete('key');
-      history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-    }
-    state.liveKey = localStorage.getItem(KEY_STORAGE);
-  } catch {
-    state.liveKey = null;
-  }
-}
-
-function forgetLiveKey() {
-  state.liveKey = null;
-  try {
-    localStorage.removeItem(KEY_STORAGE);
-  } catch {
-    // Storage may be unavailable.
-  }
-}
-
-function keyHeaders(extra = {}) {
-  return state.liveKey ? { ...extra, 'X-Live-Key': state.liveKey } : extra;
-}
+// Server settings and the live-run note
 
 async function loadConfig() {
   try {
-    const res = await fetch('/api/config', { headers: keyHeaders(), cache: 'no-store' });
+    const res = await fetch('/api/config', { cache: 'no-store' });
     state.config = await res.json();
   } catch {
     state.config = null;
   }
-  const live = state.config?.live;
-  if (state.liveKey && live?.needsKey && !live.keyAccepted) forgetLiveKey();
   renderLiveNote();
   renderCards();
-  renderCostTables();
   const active = state.config?.activeRun;
   if (active && !state.live) followRun(active);
 }
 
 function canStartLive() {
   const live = state.config?.live;
-  return !!live?.enabled && (!live.needsKey || live.keyAccepted) && live.remainingToday !== 0 && !state.live;
-}
-
-function canStopLive() {
-  const live = state.config?.live;
-  return !live?.needsKey || !!live.keyAccepted;
+  return !!live?.enabled && live.remainingToday !== 0 && !state.live;
 }
 
 function renderLiveNote() {
@@ -161,10 +135,9 @@ function renderLiveNote() {
   if (state.liveMessage) text = state.liveMessage;
   else if (!live) text = 'Couldn’t reach the server.';
   else if (!live.enabled) text = `${live.reason} Replays and checks still work.`;
-  else if (live.needsKey && !live.keyAccepted) text = 'Live runs on this server need its access link, the one that ends in ?key=. Replays and checks work without it.';
   else if (live.remainingToday === 0) text = `This server has started its ${live.dailyLimit} live runs for today. Replays and checks still work.`;
   else {
-    text = 'Live runs spend AIU from the Copilot plan of the GitHub account this server uses.';
+    text = 'Live runs spend AIU from the Copilot plan of the GitHub account this server uses. While one runs, you can replay a recorded run and come back to it.';
     if (live.remainingToday != null) text += ` ${plural(live.remainingToday, 'live run')} left today.`;
   }
   note.textContent = text;
@@ -183,7 +156,7 @@ function stepEffort(trace, step) {
 }
 
 function renderFlow() {
-  const trace = state.trace;
+  const trace = shownTrace();
   const request = $('[data-slot="request"]');
   const router = $('[data-slot="router"]');
   const plan = $('[data-slot="plan"]');
@@ -248,7 +221,7 @@ function buildPatternRows() {
 }
 
 function renderPatternStates() {
-  const trace = state.trace;
+  const trace = shownTrace();
   const pattern = trace ? currentPattern(trace) : null;
   const steps = pattern ? pipeline(trace) : [];
   for (const row of document.querySelectorAll('.pattern-row')) {
@@ -278,8 +251,9 @@ function buildTokenPrices() {
 }
 
 function renderTokenPrices() {
+  const trace = shownTrace();
   const byType = {};
-  for (const call of state.trace?.usage ?? []) {
+  for (const call of trace?.usage ?? []) {
     for (const d of call.tokenDetails ?? []) {
       const entry = (byType[d.tokenType] ??= { tokens: 0, nano: 0 });
       entry.tokens += d.tokenCount;
@@ -290,7 +264,7 @@ function renderTokenPrices() {
     const entry = byType[row.dataset.type];
     $('[data-role="live"]', row).textContent = entry
       ? `${formatNumber(entry.tokens)} tokens, ${formatAiu(entry.nano / NANO_PER_AIU)} AIU`
-      : state.trace?.meta?.source === 'reference' ? 'Not recorded' : '—';
+      : trace?.meta?.source === 'reference' ? 'Not recorded' : '—';
   }
 }
 
@@ -359,10 +333,10 @@ function buildCards() {
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'button', 'data-action': 'live', onclick: () => runLive(demo) },
           'Run live', h('span', { class: 'visually-hidden' }, `: ${demo.title} demo`)),
-        h('button', { type: 'button', class: 'button secondary', 'data-action': 'reference', onclick: () => replayReference(demo) },
-          'Replay reference run', h('span', { class: 'visually-hidden' }, `: ${demo.title}`)),
         h('button', { type: 'button', class: 'button secondary', 'data-action': 'last', onclick: () => replayLast(demo) },
-          'Replay last live run', h('span', { class: 'visually-hidden' }, `: ${demo.title} demo`))),
+          'Replay last live run', h('span', { class: 'visually-hidden' }, `: ${demo.title} demo`)),
+        h('button', { type: 'button', class: 'button secondary', 'data-action': 'reference', onclick: () => replayReference(demo) },
+          'Replay reference run', h('span', { class: 'visually-hidden' }, `: ${demo.title}`))),
       h('p', { class: 'last-run', 'data-role': 'last-run' }))));
 }
 
@@ -371,73 +345,71 @@ function lastLive(demoId) {
 }
 
 function renderCards() {
-  const following = !!state.live;
   for (const card of document.querySelectorAll('.card')) {
-    const demoId = card.dataset.demo;
-    const last = lastLive(demoId);
+    const last = lastLive(card.dataset.demo);
     for (const button of card.querySelectorAll('button')) {
       const action = button.dataset.action;
-      button.disabled = following
-        || (action === 'live' && !canStartLive())
-        || (action === 'last' && !last);
+      button.disabled = (action === 'live' && !canStartLive()) || (action === 'last' && !last);
     }
     $('[data-role="last-run"]', card).textContent = last
-      ? `Last live run: ${patternName(last.pattern)} workflow, ${formatAiu(last.aiu)} AIU`
+      ? `Last live run: ${patternName(last.pattern)} workflow, ${formatAiu(last.aiu)} AIU, ${formatDuration(last.durationMs)}`
       : 'No live run yet';
   }
 }
 
 // The run viewer
 
-function begin(run) {
-  stopReplay();
-  state.trace = createTrace();
-  state.run = { ...run, key: `${run.mode}-${Date.now()}`, startedAt: Date.now() };
-  clearInterval(state.ticker);
-  state.ticker = setInterval(updateStatus, 1000);
+function startView(kind, { title, source = null }) {
+  state.views[kind] = { kind, key: `${kind}-${Date.now()}`, title, source, trace: createTrace(), startedAt: Date.now() };
+  showView(kind);
+}
+
+function showView(kind) {
+  state.showing = kind;
   render();
   const viewer = $('#viewer');
   viewer.focus({ preventScroll: true });
   viewer.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 
-function handleEvent(event) {
-  applyEvent(state.trace, event);
-  const trace = state.trace;
-  switch (event.type) {
-    case 'session.fusion_resolved':
-      announce(selectedWorkflow(trace));
-      break;
-    case 'session.fusion_route_failed':
-      announce('Routing failed. It carried on with a fallback model.');
-      break;
-    case 'assistant.fusion_phase_started': {
-      const phase = trace.phases.find((p) => p.id === event.data.phaseId);
-      if (phase) announce(`${phase.pass} pass started`);
-      break;
+function handleEvent(kind, event) {
+  const view = state.views[kind];
+  if (!view) return;
+  applyEvent(view.trace, event);
+  const trace = view.trace;
+  if (state.showing === kind) {
+    switch (event.type) {
+      case 'session.fusion_resolved':
+        announce(selectedWorkflow(trace));
+        break;
+      case 'session.fusion_route_failed':
+        announce('Routing failed. It carried on with a fallback model.');
+        break;
+      case 'assistant.fusion_phase_started': {
+        const phase = trace.phases.find((p) => p.id === event.data.phaseId);
+        if (phase) announce(`${phase.pass} pass started`);
+        break;
+      }
+      case 'run.finished': {
+        const sum = totals(trace);
+        announce(event.data.ok ? `Run finished: ${formatAiu(sum.reportedAiu ?? sum.aiu)} AIU.` : `The run ended: ${event.data.error ?? 'error'}`);
+        break;
+      }
+      default:
+        break;
     }
-    case 'run.finished': {
-      const sum = totals(trace);
-      announce(event.data.ok ? `Run finished: ${formatAiu(sum.reportedAiu ?? sum.aiu)} AIU.` : `The run ended: ${event.data.error ?? 'error'}`);
-      break;
-    }
-    default:
-      break;
+  } else if (kind === 'live' && event.type === 'run.finished') {
+    announce('The live run finished. Choose “Back to the live run” to see it.');
   }
   scheduleRender();
 }
 
-function finishRun() {
-  clearInterval(state.ticker);
-  state.ticker = null;
-  scheduleRender();
-}
-
-function elapsedMs(trace) {
+function elapsedMs(view) {
+  const trace = view.trace;
   if (trace.meta?.source === 'reference') return null;
-  if (state.run.mode !== 'live' || isFinished(trace)) return trace.durationMs ?? trace.lastT;
+  if (view.kind !== 'live' || isFinished(trace)) return trace.durationMs ?? trace.lastT;
   const started = Date.parse(trace.meta?.startedAt ?? '');
-  const sinceStart = Number.isNaN(started) ? Date.now() - state.run.startedAt : Date.now() - started;
+  const sinceStart = Number.isNaN(started) ? Date.now() - view.startedAt : Date.now() - started;
   return Math.max(trace.lastT, sinceStart);
 }
 
@@ -445,54 +417,63 @@ function updateStatus() {
   const viewer = $('#viewer');
   const badge = $('[data-role="badge"]', viewer);
   const elapsed = $('[data-role="elapsed"]', viewer);
-  const trace = state.trace;
-  if (!badge || !trace) return;
-  const finished = isFinished(trace);
-  badge.className = `badge ${finished ? (trace.status === 'done' ? 'done' : 'error') : 'live'}`;
+  const view = currentView();
+  if (!badge || !view) return;
+  const finished = isFinished(view.trace);
+  badge.className = `badge ${finished ? (view.trace.status === 'done' ? 'done' : 'error') : 'live'}`;
   badge.textContent = finished
-    ? (trace.status === 'done' ? 'Finished' : 'Ended with an error')
-    : state.run.mode === 'live' ? (state.live?.stopping ? 'Stopping' : 'Running') : 'Replaying';
-  const ms = elapsedMs(trace);
+    ? (view.trace.status === 'done' ? 'Finished' : 'Ended with an error')
+    : view.kind === 'live' ? (state.live?.stopping ? 'Stopping' : 'Running') : 'Replaying';
+  const ms = elapsedMs(view);
   elapsed.textContent = ms != null ? formatDuration(ms) : '';
+  updateControls();
 }
 
 function updateControls() {
   const slot = $('#viewer [data-role="controls"]');
-  if (!slot) return;
-  const showStop = !!state.live && !state.live.stopping && !isFinished(state.trace) && canStopLive();
-  const key = `${showStop}-${!!state.replay}`;
+  const view = currentView();
+  if (!slot || !view) return;
+  const buttons = [];
+  if (view.kind === 'live' && liveInProgress() && !state.live.stopping) buttons.push('stop');
+  if (view.kind === 'replay' && state.replay) buttons.push('skip');
+  if (view.kind === 'replay' && state.views.live) buttons.push(liveInProgress() ? 'back-running' : 'back');
+  const key = buttons.join(',');
   if (slot.dataset.key === key) return;
   slot.dataset.key = key;
-  if (showStop) {
-    slot.replaceChildren(h('button', { type: 'button', class: 'button secondary', onclick: stopLive }, 'Stop the run'));
-  } else if (state.replay) {
-    slot.replaceChildren(h('button', { type: 'button', class: 'button secondary', onclick: skipReplay }, 'Skip to the end'));
-  } else {
-    slot.replaceChildren();
-  }
+  slot.replaceChildren(...buttons.map((name) => {
+    switch (name) {
+      case 'stop':
+        return h('button', { type: 'button', class: 'button secondary', onclick: stopLive }, 'Stop the run');
+      case 'skip':
+        return h('button', { type: 'button', class: 'button secondary', onclick: skipReplay }, 'Skip to the end');
+      case 'back-running':
+        return h('button', { type: 'button', class: 'button', onclick: () => showView('live') }, 'Back to the live run (still running)');
+      default:
+        return h('button', { type: 'button', class: 'button', onclick: () => showView('live') }, 'Back to the live run');
+    }
+  }));
 }
 
 function renderViewer() {
   const viewer = $('#viewer');
-  const trace = state.trace;
-  if (!trace) return;
-  if (viewer.dataset.key !== state.run.key) {
-    viewer.dataset.key = state.run.key;
-    const eyebrow = state.run.mode === 'live' ? 'Live run' : state.run.source === 'reference' ? 'Replay of a reference run' : 'Replay of a live run';
+  const view = currentView();
+  if (!view) return;
+  if (viewer.dataset.key !== view.key) {
+    viewer.dataset.key = view.key;
+    const eyebrow = view.kind === 'live' ? 'Live run' : view.source === 'reference' ? 'Replay of a reference run' : 'Replay of a recorded live run';
     viewer.replaceChildren(
       h('div', { class: 'viewer-head' },
         h('div', {},
           h('p', { class: 'eyebrow' }, eyebrow),
-          h('h3', { id: 'viewer-title' }, state.run.title)),
+          h('h3', { id: 'viewer-title' }, view.title)),
         h('div', { class: 'status' },
           h('span', { class: 'badge', 'data-role': 'badge' }),
           h('span', { class: 'muted', 'data-role': 'elapsed' }),
-          h('span', { 'data-role': 'controls' }))),
+          h('span', { class: 'controls', 'data-role': 'controls' }))),
       h('div', { 'data-role': 'body' }));
   }
   updateStatus();
-  updateControls();
-  $('[data-role="body"]', viewer).replaceChildren(...viewerBody(trace));
+  $('[data-role="body"]', viewer).replaceChildren(...viewerBody(view.trace));
 }
 
 function viewerBody(trace) {
@@ -619,12 +600,11 @@ async function runLive(demo) {
   try {
     const res = await fetch('/api/live', {
       method: 'POST',
-      headers: keyHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ demo: demo.id }),
     });
     const body = await res.json().catch(() => ({}));
     if (res.status === 409 && body.activeRun) return followRun(body.activeRun);
-    if (res.status === 403) forgetLiveKey();
     if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
     await followRun(body.run);
   } catch (err) {
@@ -636,7 +616,7 @@ async function runLive(demo) {
 async function followRun({ id, title }) {
   if (state.live?.id === id) return;
   state.live = { id, stopping: false };
-  begin({ mode: 'live', title });
+  startView('live', { title });
   let after = 0;
   let failures = 0;
   while (state.live?.id === id) {
@@ -646,19 +626,20 @@ async function followRun({ id, title }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       failures = 0;
-      for (const event of body.events) handleEvent(event);
+      for (const event of body.events) handleEvent('live', event);
       after = body.next;
       if (body.done) break;
     } catch (err) {
       if (err.fatal || ++failures > 5) {
-        if (!isFinished(state.trace)) handleEvent({ t: state.trace.lastT, type: 'run.finished', data: { ok: false, error: err.message } });
+        const trace = state.views.live.trace;
+        if (!isFinished(trace)) handleEvent('live', { t: trace.lastT, type: 'run.finished', data: { ok: false, error: err.message } });
         break;
       }
       await sleep(2000 * failures);
     }
   }
   if (state.live?.id === id) state.live = null;
-  finishRun();
+  scheduleRender();
   await Promise.all([loadRecordings(), loadConfig()]);
 }
 
@@ -669,7 +650,7 @@ async function stopLive() {
   try {
     const res = await fetch(`/api/live/${encodeURIComponent(state.live.id)}/stop`, {
       method: 'POST',
-      headers: keyHeaders({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: '{}',
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
@@ -680,17 +661,17 @@ async function stopLive() {
   }
 }
 
-// Replays
+// Replays. They use their own view, so a live run keeps going while one plays.
 
 async function replayRecording(id) {
-  if (state.live) return;
   const res = await fetch(`/api/recordings/${encodeURIComponent(id)}`);
   if (!res.ok) {
     announce('Couldn’t load that recording.');
     return;
   }
   const recording = await res.json();
-  begin({ mode: 'replay', title: recording.title, source: recording.source });
+  stopReplay();
+  startView('replay', { title: recording.title, source: recording.source });
   const events = recording.events ?? [];
   const speed = Math.max(1, (events.at(-1)?.t ?? 0) / REPLAY_TARGET_MS);
   state.replay = { events, index: 0, speed, startedAt: performance.now(), timer: null };
@@ -699,7 +680,7 @@ async function replayRecording(id) {
     const replay = state.replay;
     if (!replay) return;
     const elapsed = (performance.now() - replay.startedAt) * replay.speed;
-    while (replay.index < replay.events.length && replay.events[replay.index].t <= elapsed) handleEvent(replay.events[replay.index++]);
+    while (replay.index < replay.events.length && replay.events[replay.index].t <= elapsed) handleEvent('replay', replay.events[replay.index++]);
     if (replay.index < replay.events.length) replay.timer = setTimeout(tick, 100);
     else endReplay();
   };
@@ -710,13 +691,13 @@ function skipReplay() {
   const replay = state.replay;
   if (!replay) return;
   clearTimeout(replay.timer);
-  while (replay.index < replay.events.length) handleEvent(replay.events[replay.index++]);
+  while (replay.index < replay.events.length) handleEvent('replay', replay.events[replay.index++]);
   endReplay();
 }
 
 function endReplay() {
   state.replay = null;
-  finishRun();
+  scheduleRender();
 }
 
 function stopReplay() {
@@ -748,8 +729,9 @@ function groupedCostTable(recordings, { withReplay }) {
             i === 0
               ? h('th', { scope: 'rowgroup', rowspan: String(rec.rows.length) },
                   `${patternName(rec.pattern)}, ${rec.tier}`,
-                  withReplay ? [h('br'), h('span', { class: 'muted' }, `${new Date(rec.savedAt).toLocaleString()}, ${formatAiu(rec.aiu)} AIU`), h('br'),
-                    h('button', { type: 'button', class: 'button secondary', disabled: !!state.live, onclick: () => replayRecording(rec.id) }, 'Replay', h('span', { class: 'visually-hidden' }, `: ${rec.title}`))] : null)
+                  withReplay ? [h('br'), h('span', { class: 'muted' }, `${rec.title}`), h('br'),
+                    h('span', { class: 'muted' }, `${formatAiu(rec.aiu)} AIU, ${formatDuration(rec.durationMs)}`), h('br'),
+                    h('button', { type: 'button', class: 'button secondary', onclick: () => replayRecording(rec.id) }, 'Replay', h('span', { class: 'visually-hidden' }, `: ${rec.title}`))] : null)
               : null,
             h('td', {}, row.pass),
             h('td', {}, row.modelName),
@@ -788,12 +770,12 @@ async function loadRecordings() {
   renderCards();
 }
 
-initLiveKey();
 buildPatternRows();
 buildTokenPrices();
 buildCards();
 buildChecks();
 renderLiveNote();
+setInterval(updateStatus, 1000);
 $('#run-checks').addEventListener('click', runChecks);
 $('#demo-page-url').textContent = new URL('/demo-page/', location.href).href;
 loadRecordings().then(loadConfig);

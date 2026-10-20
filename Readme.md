@@ -21,6 +21,7 @@ This app sends one prompt for each pattern to HydraFusion through the [Copilot S
 | `src/server.mjs` | Serves the dashboard and the demo page, and runs live runs in the background |
 | `src/cli.mjs` | Runs or replays the demos in a terminal |
 | `recordings/reference-runs.json` | One reference run of each pattern, for replays that cost nothing |
+| `recordings/live/` | A recorded live run of each demo, from the Azure deployment |
 | `infra/`, `azure.yaml`, `Dockerfile` | Deployment to Azure Container Apps with the Azure Developer CLI |
 
 ## Run it on your machine
@@ -55,20 +56,11 @@ azd up
 
 It creates a resource group with Azure Container Apps (one replica, 2 vCPU, 4 GiB), Azure Container Registry, a managed identity that pulls the image, and a Log Analytics workspace. The image is built in the registry, so you don't need Docker.
 
-Before provisioning, a hook (`infra/hooks/preprovision.mjs`) sets two values in the azd environment:
+Before provisioning, a hook (`infra/hooks/preprovision.mjs`) sets **`COPILOT_GITHUB_TOKEN`** in the azd environment to your GitHub CLI token, from `gh auth token`. The container app keeps it as a secret, and live runs use it to sign in to Copilot, so they spend AIU from that account's Copilot plan. The hook refreshes it on every `azd provision`. To use a fine-grained token with only Copilot access instead, run `azd env set COPILOT_GITHUB_TOKEN github_pat_...`. The hook keeps a token that starts with `github_pat_`.
 
-- **`COPILOT_GITHUB_TOKEN`**: your GitHub CLI token, from `gh auth token`. The container app keeps it as a secret, and live runs use it to sign in to Copilot, so they spend AIU from that account's Copilot plan. The hook refreshes it on every `azd provision`. To use a fine-grained token with only Copilot access instead, run `azd env set COPILOT_GITHUB_TOKEN github_pat_...`. The hook keeps a token that starts with `github_pat_`.
-- **`LIVE_RUN_KEY`**: a random key. Anyone can open the dashboard, replay runs and run the checks, but starting or stopping a live run needs this key.
+Anyone with the app's URL can start live runs, so share it with care. The app starts at most 20 live runs per UTC day; change `liveRunDailyLimit` in `infra/main.bicep` to adjust that.
 
-To get the link that includes the key, run:
-
-```sh
-azd hooks run postdeploy
-```
-
-Open that link once, and the browser keeps the key. The app also starts at most 20 live runs per UTC day; change `liveRunDailyLimit` in `infra/main.bicep` to adjust that.
-
-On Azure, live runs are kept in the container until it restarts or you deploy again. The reference runs are part of the image, so they're always there.
+The app ships with a recorded live run of each demo in `recordings/live/`, so "Replay last live run" works from the start. New live runs are kept in the container until it restarts or you deploy again. While a live run is going, you can replay a recorded run and then go back to the live one.
 
 To turn live runs off, run `azd env set COPILOT_GITHUB_TOKEN ""` and `azd provision`. To delete everything, run `azd down`.
 
