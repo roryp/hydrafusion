@@ -4,6 +4,43 @@ HydraFusion is a GitHub Copilot model, in research preview, that plans each requ
 
 **Slides:** [HydraFusion and Accessibility testing](slides/hydrafusion-101.pdf)
 
+## How it works
+
+![Architecture diagram. Your browser shows the dashboard, served by a web server in one Azure Container App. When you run a demo, the server starts a Copilot SDK session on HydraFusion in GitHub Copilot, which picks a pattern and a model for each pass. The passes test the demo page through Playwright MCP and headless Chrome. The route, passes and cost stream back to the dashboard, and each run is saved for replay. The accessibility checks test the same page without AI.](docs/architecture.png)
+
+To edit the diagram, open `docs/architecture.excalidraw` in Excalidraw.
+
+A live run, step by step:
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant D as Dashboard
+    participant S as Web server
+    participant R as Live runner (Copilot SDK)
+    participant H as HydraFusion (GitHub Copilot)
+    participant B as Browser tools (Playwright MCP)
+
+    You->>D: Run live
+    D->>S: Start the demo
+    S->>R: New session on the chosen tier
+    R->>H: Prompt and the shared demo page
+    H->>H: Pick a pattern and a model for each pass
+    loop Each pass
+        H->>R: Tool calls, if the pass needs them
+        R->>B: Test the demo page
+        B-->>R: Results
+        R-->>H: Results
+    end
+    H-->>R: Answer, route and cost
+    R-->>S: Events for the route, each pass and its cost
+    S-->>D: Events, as the dashboard asks for them
+    S->>S: Save the run for replay
+    D-->>You: Workflow, passes and cost
+```
+
+The events reach the dashboard while the run goes, not only at the end.
+
 ## The demos
 
 | Pattern | Tier | Prompt |
