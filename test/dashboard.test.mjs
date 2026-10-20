@@ -83,3 +83,27 @@ test('a slow start disables repeat submissions before the first response arrives
   await page.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
   assert.equal(starts, 1);
 });
+
+test('replay controls wait for recordings instead of dropping clicks on a slow connection', { timeout: 30_000 }, async (t) => {
+  const held = Promise.withResolvers();
+  const intercepted = Promise.withResolvers();
+  t.after(() => held.resolve());
+  const server = await startServer({ port: 0, auth: { enabled: false } });
+  t.after(() => server.close());
+  const browser = await launchBrowser();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  await page.route('**/api/recordings', async (route) => {
+    intercepted.resolve();
+    await held.promise;
+    await route.continue();
+  });
+  await page.goto(server.origin);
+  await intercepted.promise;
+  const replay = page.locator('[data-demo="single"] [data-action="reference"]');
+  assert.ok(await replay.isDisabled());
+  assert.ok(await page.locator('[data-demo="single"] [data-action="live"]').isDisabled());
+  held.resolve();
+  await replay.click();
+  await page.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
+});

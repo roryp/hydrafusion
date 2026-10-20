@@ -129,7 +129,7 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
     await replay.goto(origin);
     assert.equal(await replay.getByRole('button', { name: 'Stop the run', exact: true }).count(), 0, 'A fresh visitor joined someone else\'s run.');
     await replay.locator('[data-demo="single"] [data-action="reference"]').click();
-    await replay.waitForFunction(() => document.querySelector('#viewer [data-role="badge"]').textContent === 'Finished');
+    await replay.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
 
     console.error(`Started ${users} independent browser-backed live runs on ${origin}; saturation, reload and replay checks passed.`);
     const [results, checkResponses] = await Promise.all([
@@ -143,8 +143,8 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
     }
     assert.equal(new Set(results.map((result) => result.recordingId)).size, users, 'Concurrent recordings overwrote one another.');
     await Promise.all(pages.map((page) => page.waitForFunction(() =>
-      document.querySelector('#viewer [data-role="badge"]').textContent === 'Finished'
-      && !document.querySelector('[data-action="live"]').disabled, null, { timeout: 30_000 })));
+      document.querySelector('#viewer [data-role="badge"]')?.textContent === 'Finished'
+      && document.querySelector('[data-action="live"]')?.disabled === false, null, { timeout: 30_000 })));
     assert.deepEqual(pageErrors, [], 'Dashboard JavaScript errors.');
     assert.deepEqual(availabilityErrors, [], 'Health endpoint failed during load.');
     assert.equal((await request('/api/config')).body.live.activeCount, 0);

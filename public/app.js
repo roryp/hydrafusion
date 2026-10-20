@@ -360,9 +360,10 @@ function lastLive(demoId) {
 function renderCards() {
   for (const card of document.querySelectorAll('.card')) {
     const last = lastLive(card.dataset.demo);
+    const reference = state.recordings.some((recording) => recording.source === 'reference' && recording.demoId === card.dataset.demo);
     for (const button of card.querySelectorAll('button')) {
       const action = button.dataset.action;
-      button.disabled = (action === 'live' && !canStartLive()) || (action === 'last' && !last);
+      button.disabled = (action === 'live' && !canStartLive()) || (action === 'last' && !last) || (action === 'reference' && !reference);
     }
     $('[data-role="last-run"]', card).textContent = last
       ? `Last live run: ${patternName(last.pattern)} workflow, ${formatAiu(last.aiu)} AIU, ${formatDuration(last.durationMs)}`
@@ -804,6 +805,7 @@ async function loadRecordings() {
 buildPatternRows();
 buildTokenPrices();
 buildCards();
+renderCards();
 buildChecks();
 renderLiveNote();
 setInterval(updateStatus, 1000);
