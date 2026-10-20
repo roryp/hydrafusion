@@ -50,18 +50,29 @@ describe('static files and recordings', () => {
   });
   after(() => server.close());
 
-  test('serves the dashboard, the demo page, the shared modules and axe-core', async () => {
-    for (const [path, type] of [['/', 'text/html'], ['/demo-page/', 'text/html'], ['/shared/trace.mjs', 'text/javascript'], ['/vendor/axe.min.js', 'text/javascript'], ['/checks/04-keyboard.js', 'text/javascript'], ['/healthz', 'text/plain']]) {
+  test('serves the dashboard, tutorials, demo page, shared modules and axe-core', async () => {
+    for (const [path, type] of [['/', 'text/html'], ['/tutorials.html', 'text/html'], ['/demo-page/', 'text/html'], ['/shared/trace.mjs', 'text/javascript'], ['/vendor/axe.min.js', 'text/javascript'], ['/checks/04-keyboard.js', 'text/javascript'], ['/healthz', 'text/plain']]) {
       const res = await fetch(`${server.origin}${path}`);
       assert.equal(res.status, 200, path);
       assert.match(res.headers.get('content-type'), new RegExp(type), path);
     }
   });
 
-  test('introduces HydraFusion below the title and before the section navigation', async () => {
+  test('keeps the dashboard concise and moves the tutorials to a linked static page', async () => {
     const html = await (await fetch(`${server.origin}/`)).text();
     const intro = html.match(/<h1>[^<]+<\/h1>\s*<p class="subtitle">([^<]+)<\/p>\s*<nav\b/)?.[1];
-    assert.equal(intro, 'HydraFusion is a GitHub Copilot model, in research preview, that plans each request and picks a model for each step. This app runs three prompts against a web page with accessibility problems built in, and shows which pattern HydraFusion picked, each step as it runs, and what it cost.');
+    assert.equal(intro, 'Run HydraFusion live, replay a recording, or check the demo page.');
+    assert.match(html, /href="\/tutorials\.html">Tutorials<\/a>/);
+    const tutorials = await (await fetch(`${server.origin}/tutorials.html`)).text();
+    for (const heading of ['What HydraFusion is', 'Three patterns', 'How cost is counted', 'Testing a page for accessibility', 'The browser tools', 'How to tell which one you got', 'Use it as a first pass']) {
+      assert.ok(tutorials.includes(`>${heading}</h`), `Missing tutorial: ${heading}`);
+      assert.ok(!html.includes(`>${heading}</h`), `Tutorial still on the main page: ${heading}`);
+    }
+    assert.match(tutorials, /href="\/#try">Back to demos<\/a>/);
+    assert.doesNotMatch(tutorials, /<script\b/);
+    for (const id of ['demo-cards', 'viewer', 'run-details', 'pattern-rows', 'token-prices', 'run-checks', 'checks-body', 'reference-costs', 'live-costs']) {
+      assert.ok(html.includes(`id="${id}"`), `Missing interactive view: ${id}`);
+    }
   });
 
   test('lists the reference runs and a recorded live run of each demo', async () => {

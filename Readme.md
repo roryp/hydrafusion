@@ -6,6 +6,8 @@ HydraFusion is a GitHub Copilot model, in research preview, that plans each requ
 
 **Live demo:** https://aka.ms/hydrafusion
 
+The main page is the interactive dashboard: live demos, replays, routing and token details, accessibility checks and saved-run costs. The linked [Tutorials page](public/tutorials.html) covers HydraFusion, its three patterns, billing and the VS Code accessibility-testing walkthrough. You can visit it during a live run and return to the same tab's run with **Back to demos**.
+
 ## How it works
 
 ![Architecture diagram. The dashboard in your browser talks to a Node.js app, with a web server and the Copilot SDK, in an Azure Container App. The app sends the prompt to HydraFusion in GitHub Copilot, which picks a pattern and models and sends back the passes and cost. For tool calls and the accessibility checks, the app drives headless Chrome with Playwright, which tests the demo page.](docs/architecture.png)

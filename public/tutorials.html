@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HydraFusion tutorials: patterns, cost and accessibility</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#what">Skip to the tutorials</a>
+
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">HydraFusion demos</p>
+      <h1>HydraFusion tutorials</h1>
+      <p class="subtitle">Learn how routing, patterns, billing and browser-based accessibility testing work.</p>
+      <nav aria-label="Sections">
+        <ul class="agenda">
+          <li><a href="/#try">Back to demos</a></li>
+          <li><a href="#what">What HydraFusion is</a></li>
+          <li><a href="#patterns">Three patterns</a></li>
+          <li><a href="#cost">How cost is counted</a></li>
+          <li><a href="#testing">Accessibility testing</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="what" aria-labelledby="what-title">
+      <h2 id="what-title">What HydraFusion is</h2>
+      <p class="lead">For each request, it plans the steps and picks a model for each one.</p>
+      <p>HydraFusion is a GitHub Copilot model, in research preview, that plans each request and picks a model for each step. This app runs three prompts against a web page with accessibility problems built in, and shows which pattern HydraFusion picked, each step as it runs, and what it cost.</p>
+      <p>A request goes through a router that scores reasoning, code, debugging and tool use. It chooses a pattern and a model for each step. The dashboard's routing panel fills in with the real route when you run or replay a demo.</p>
+      <div class="columns">
+        <ul class="bullets">
+          <li>A research preview, listed after Auto in the model picker</li>
+          <li>Two tiers, Default and Max, each with its own routing policy</li>
+          <li>Each step can use a different model and reasoning effort</li>
+          <li>If routing fails, it carries on with a fallback model</li>
+        </ul>
+        <div class="aside-box">
+          <h3>Where to find it</h3>
+          <p>In VS Code, pick <strong>HydraFusion</strong> in the model picker, then choose <strong>Default</strong> or <strong>Max</strong> at the right of its row. It routes the first eligible turn, so open a new chat when you want a fresh route.</p>
+          <p>This app uses the same tiers through the Copilot SDK: <code>hydrafusion</code> for Default and <code>hydrafusion-max</code> for Max, with a new session for every run.</p>
+        </div>
+      </div>
+
+      <h3>Using the demos</h3>
+      <p>Each demo starts a new session with the tier already set, then sends the prompt, as if you opened a new chat. Each prompt tends to get the pattern on its card, but the router decides. Live runs spend AIU from the server's Copilot account; replays don't.</p>
+      <p>While a live run continues, you can replay a recording and return to it. You can also visit these tutorials and use <a href="/#try">Back to demos</a> to resume your own live run in the same tab.</p>
+    </section>
+
+    <section id="patterns" aria-labelledby="patterns-title">
+      <h2 id="patterns-title">Three patterns</h2>
+      <p class="lead">The router picks one of these for each request. You can't pick it directly.</p>
+      <dl>
+        <dt><strong>Single</strong></dt>
+        <dd>One solver does the whole job.</dd>
+        <dt><strong>Critique</strong></dt>
+        <dd>A solver drafts a result, a critic reviews it in read-only history, and the original solver revises it if needed.</dd>
+        <dt><strong>Cascade</strong></dt>
+        <dd>A solver produces an answer, a judge scores it, and a stronger model repairs it only if it fails.</dd>
+      </dl>
+      <p class="note">In the dashboard's pattern progress view, dashed steps only run when needed. The pattern of the run you're watching is highlighted.</p>
+
+      <h3>Critique or Cascade</h3>
+      <p>Both add a second opinion. They use it differently.</p>
+      <div class="table-scroll" role="region" aria-label="Critique and Cascade comparison" tabindex="0">
+        <table class="grid">
+          <thead>
+            <tr><th scope="col"><span class="visually-hidden">Question</span></th><th scope="col">Critique</th><th scope="col">Cascade</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Who reviews</th><td>A critic</td><td>A judge</td></tr>
+            <tr><th scope="row">What the review returns</th><td>Notes on the draft</td><td>A score: pass or fail</td></tr>
+            <tr><th scope="row">If the answer falls short</th><td>The same model revises it</td><td>A stronger model repairs it</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">A Critique fix stays with the same model. A Cascade fix brings in a stronger one, so it can cost more.</p>
+
+      <h3>Behind the scenes</h3>
+      <div class="columns">
+        <div>
+          <h4>Reviews</h4>
+          <ul class="bullets">
+            <li>Run in a separate, read-only history</li>
+            <li>Start from the answer and a summary</li>
+            <li>Can't change your files</li>
+            <li>Can miss checks that were never run</li>
+          </ul>
+        </div>
+        <div>
+          <h4>In Cascade</h4>
+          <ul class="bullets">
+            <li>A rejected answer is held back</li>
+            <li>You only see the repaired answer</li>
+            <li>File edits from the first try stay</li>
+            <li>The repair can reuse or redo them</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">Reviews never enter your chat history, so they don't add to the size of later requests.</p>
+
+      <h3>How to tell which one you got</h3>
+      <p>Chat shows the workflow it picked, then each pass as it runs.</p>
+      <div class="table-scroll" role="region" aria-label="Workflow names and passes" tabindex="0">
+        <table class="grid">
+          <thead>
+            <tr><th scope="col">Pattern</th><th scope="col">Chat says</th><th scope="col">Passes</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Single</th><td>Selected Single workflow</td><td>Main</td></tr>
+            <tr><th scope="row">Critique</th><td>Selected Critique workflow</td><td>First, Critique, Revision</td></tr>
+            <tr><th scope="row">Cascade</th><td>Selected Cascade workflow</td><td>Main, Review, Fix-up</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Revision and Fix-up only show up when the review asks for changes. Try the same prompt on Default and Max, each in a new chat, and compare.</p>
+    </section>
+
+    <section id="cost" aria-labelledby="cost-title">
+      <h2 id="cost-title">How cost is counted</h2>
+      <div class="columns">
+        <div>
+          <h3>Premium requests (legacy)</h3>
+          <ul class="bullets">
+            <li>Counted per prompt, not per token</li>
+            <li>Each model has a multiplier</li>
+            <li>Some models count 1, others 15</li>
+            <li>Extra steps can add to it</li>
+          </ul>
+        </div>
+        <div>
+          <h3>AIU (AI Units, from June 1, 2026)</h3>
+          <ul class="bullets">
+            <li>Counts every token, in and out</li>
+            <li>Each model has its own prices</li>
+            <li>Logs record it as nano-AIU</li>
+            <li>A billion nano-AIU make one AIU</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">The two don't always agree. A model can count as 1 premium request and still cost a lot per token.</p>
+
+      <h3>How tokens are priced</h3>
+      <p>Price per token, compared with new input, for the same model. The dashboard's token usage panel shows the run you're watching, from the SDK's billing details for each call.</p>
+      <table class="grid">
+        <thead>
+          <tr><th scope="col">Token type</th><th scope="col">Price vs new input</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Read from cache</th><td>0.05&times; to 0.1&times;</td></tr>
+          <tr><th scope="row">New input</th><td>1&times;</td></tr>
+          <tr><th scope="row">Written to cache</th><td>1.25&times;</td></tr>
+          <tr><th scope="row">Output</th><td>5&times;</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Base prices also vary between models. The gap can be 100 times per token.</p>
+
+      <h3>Where it saves, where it costs more</h3>
+      <div class="columns">
+        <div>
+          <h4>Saves</h4>
+          <ul class="bullets">
+            <li>Easy requests can go to a cheap model</li>
+            <li>Reviews skip the full chat history</li>
+            <li>Extra steps only run when needed</li>
+            <li>Repeated context is read from cache</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Costs more</h4>
+          <ul class="bullets">
+            <li>You pay for a rejected answer too</li>
+            <li>It may pick an expensive model</li>
+            <li>Long chats cost more per request</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">Your chat history goes with every request, so start a new chat for each test.</p>
+      <p>The <a href="/#cost">reference run costs</a> compare the demo page and the same prompt, <q>quickly test this page with the browser tools</q>, with one run of each pattern. Saved live runs have their own costs and replay controls.</p>
+    </section>
+
+    <section id="testing" aria-labelledby="testing-title">
+      <h2 id="testing-title">Testing a page for accessibility</h2>
+      <ol class="steps-list">
+        <li>Open the page in VS Code's browser</li>
+        <li>Share it with chat</li>
+        <li>Pick HydraFusion in the model picker</li>
+        <li>Send a prompt like this one</li>
+      </ol>
+      <pre class="prompt-box"><code>quickly test this page with the browser tools</code></pre>
+      <p>It reads the page, runs Playwright checks and can press keys to test the keyboard. No terminal needed.</p>
+      <p>To try it in VS Code, copy the URL of <a href="/demo-page/" target="_blank" rel="noopener noreferrer">the demo page</a> into its browser. Live runs in this app share the same page with the session and give it the browser tools through Playwright MCP.</p>
+
+      <h3>The browser tools</h3>
+      <div class="table-scroll" role="region" aria-label="VS Code and Playwright browser tools" tabindex="0">
+        <table class="grid">
+          <thead>
+            <tr><th scope="col">VS Code tool</th><th scope="col">What it does</th><th scope="col">Playwright MCP tool in live runs</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Open Browser Page</th><td>Opens a URL, or a tab you share</td><td><code>browser_navigate</code></td></tr>
+            <tr><th scope="row">Read Page</th><td>Lists each element by role and name</td><td><code>browser_snapshot</code></td></tr>
+            <tr><th scope="row">Screenshot Page</th><td>Shows what the page looks like</td><td><code>browser_take_screenshot</code></td></tr>
+            <tr><th scope="row">Navigate, Click, Type, Hover, Drag</th><td>Uses the page like a person would, keyboard included</td><td><code>browser_click</code>, <code>browser_type</code>, <code>browser_press_key</code>, <code>browser_hover</code>, <code>browser_drag</code></td></tr>
+            <tr><th scope="row">Handle Dialog</th><td>Answers alerts and prompts</td><td><code>browser_handle_dialog</code></td></tr>
+            <tr><th scope="row">Run Playwright Code</th><td>Runs a short script for anything else. The agent writes it, and you approve it.</td><td><code>browser_evaluate</code>, <code>browser_resize</code>, <code>browser_emulate_media</code> (scripts run in the page only)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>What a snippet can check</h3>
+      <p>Each row in the <a href="/#testing">interactive checks</a> is one snippet in <code>checks/</code>, run on the demo page. Each one is the body of an async function with <code>page</code> in scope, so you can paste it into Run Playwright Code as it is. Run the checks on the main page to see measured results and open each snippet.</p>
+
+      <h3>Use it as a first pass</h3>
+      <div class="columns">
+        <div>
+          <h4>It can check</h4>
+          <ul class="bullets">
+            <li>Contrast ratios</li>
+            <li>Missing alt text and labels</li>
+            <li>Heading order and landmarks</li>
+            <li>Page language</li>
+            <li>Basic keyboard use</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Then</h4>
+          <ul class="bullets">
+            <li>Run axe-core</li>
+            <li>Run Accessibility Insights</li>
+            <li>Keep the CI checks on pull requests</li>
+            <li>Keyboard and screen reader testing</li>
+            <li>Check that alt text makes sense</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">Ask for measured values and screenshots, so you can check its work.</p>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>HydraFusion is a research preview. Models, prices and routing change over time, so your runs may not match the reference runs.</p>
+  </footer>
+</body>
+</html>

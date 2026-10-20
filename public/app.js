@@ -103,6 +103,7 @@ function scheduleRender() {
 }
 
 function render() {
+  $('#run-details').hidden = !currentView();
   renderFlow();
   renderPatternStates();
   renderTokenPrices();
@@ -149,8 +150,7 @@ function renderLiveNote() {
   else if (!live.enabled) text = `${live.reason} Replays and checks still work.`;
   else if (live.remainingToday === 0) text = `This server has started its ${live.dailyLimit} live runs for today. Replays and checks still work.`;
   else {
-    text = 'Live runs spend AIU from the Copilot plan of the GitHub account this server uses. While one runs, you can replay a recorded run and come back to it.';
-    text += ` Up to ${live.concurrencyLimit} live runs can run at once. Each tab follows only its own run.`;
+    text = `Live runs spend AIU from this server's Copilot account. Up to ${live.concurrencyLimit} can run at once. Each tab follows its own run; replays are free.`;
     if (live.remainingToday != null) text += ` ${plural(live.remainingToday, 'live run')} left today.`;
   }
   note.textContent = text;
@@ -224,7 +224,7 @@ function renderFlow() {
 function buildPatternRows() {
   $('#pattern-rows').replaceChildren(...Object.entries(PATTERNS).map(([key, pattern]) =>
     h('div', { class: 'pattern-row', 'data-pattern': key },
-      h('h3', {}, pattern.name),
+      h('h4', {}, pattern.name),
       h('ol', { class: 'steps', 'aria-label': `${pattern.name} steps` }, pattern.steps.map((step) =>
         h('li', {},
           h('div', { class: `step${step.conditional ? ' conditional' : ''}`, 'data-kind': step.kind, 'data-conditional': step.conditional ? '1' : '' },
@@ -810,5 +810,4 @@ buildChecks();
 renderLiveNote();
 setInterval(updateStatus, 1000);
 $('#run-checks').addEventListener('click', runChecks);
-$('#demo-page-url').textContent = new URL('/demo-page/', location.href).href;
 loadRecordings().then(() => loadConfig({ resume: true }));
