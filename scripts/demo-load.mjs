@@ -129,7 +129,6 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
     await replay.goto(origin);
     assert.equal(await replay.getByRole('button', { name: 'Stop the run', exact: true }).count(), 0, 'A fresh visitor joined someone else\'s run.');
     await replay.locator('[data-demo="single"] [data-action="reference"]').click();
-    await replay.getByRole('button', { name: 'Skip to the end', exact: true }).click();
     await replay.waitForFunction(() => document.querySelector('#viewer [data-role="badge"]').textContent === 'Finished');
 
     console.error(`Started ${users} independent browser-backed live runs on ${origin}; saturation, reload and replay checks passed.`);
