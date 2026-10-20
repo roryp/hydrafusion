@@ -1,0 +1,51 @@
+---
+config:
+  theme: base
+  fontFamily: Helvetica, Arial, sans-serif
+  themeVariables:
+    fontFamily: Helvetica, Arial, sans-serif
+    actorBkg: "#CFE4FA"
+    actorBorder: "#0078D4"
+    actorTextColor: "#000000"
+    actorLineColor: "#8A8886"
+    signalColor: "#1E1E1E"
+    signalTextColor: "#000000"
+    labelBoxBkgColor: "#F3F2F1"
+    labelBoxBorderColor: "#8A8886"
+    labelTextColor: "#000000"
+    loopTextColor: "#000000"
+  sequence:
+    mirrorActors: false
+    useMaxWidth: false
+    diagramMarginX: 20
+    diagramMarginY: 10
+    actorFontFamily: Helvetica, Arial, sans-serif
+    messageFontFamily: Helvetica, Arial, sans-serif
+    noteFontFamily: Helvetica, Arial, sans-serif
+    actorFontSize: 16
+    messageFontSize: 16
+---
+sequenceDiagram
+    actor You
+    participant D as Dashboard
+    participant S as Web server
+    participant R as Live runner<br/>(Copilot SDK)
+    participant H as HydraFusion<br/>(GitHub Copilot)
+    participant B as Browser tools<br/>(Playwright MCP)
+
+    You->>D: Run live
+    D->>S: Start the demo
+    S->>R: New session on the tier
+    R->>H: Prompt and shared page
+    H->>H: Pick a pattern and models
+    loop Each pass
+        H->>R: Tool calls, if needed
+        R->>B: Test the demo page
+        B-->>R: Results
+        R-->>H: Results
+    end
+    H-->>R: Answer, route and cost
+    R-->>S: Events (route, passes, cost)
+    S-->>D: New events (long polling)
+    S->>S: Save the run for replay
+    D-->>You: Workflow, passes and cost
