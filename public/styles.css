@@ -148,7 +148,6 @@ table.grid td.num-cell, table.grid th.num-cell { text-align: right; font-variant
 .demo-figure { margin: 0; }
 .demo-figure iframe { width: 100%; max-width: 400px; height: 440px; border: 1px solid var(--rule); }
 .demo-figure figcaption { color: var(--muted); font-size: 0.9rem; }
-.steps-list li { font-size: 1.15rem; margin: 6px 0; }
 .prompt-box { background: var(--soft); padding: 18px 24px; font-size: 1.05rem; white-space: pre-wrap; }
 .checks td.measured { font-weight: 600; }
 .checks .match { color: var(--ok); }
@@ -208,6 +207,14 @@ table.grid td.num-cell, table.grid th.num-cell { text-align: right; font-variant
 .headline span { color: var(--muted); }
 
 .footer { color: var(--muted); font-size: 0.85rem; padding: 24px; }
+
+/* Tutorials */
+.steps-list { padding-left: 24px; }
+.steps-list li { margin: 6px 0; }
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 8px 12px; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.shot { margin: 24px 0; }
+.shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; }
 
 @media (max-width: 760px) {
   .flow { grid-template-columns: 1fr; }

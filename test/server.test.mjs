@@ -64,7 +64,7 @@ describe('static files and recordings', () => {
     assert.equal(intro, 'Run HydraFusion live, replay a recording, or check the demo page.');
     assert.match(html, /href="\/tutorials\.html">Tutorials<\/a>/);
     const tutorials = await (await fetch(`${server.origin}/tutorials.html`)).text();
-    for (const heading of ['What HydraFusion is', 'Three patterns', 'How cost is counted', 'Testing a page for accessibility', 'The browser tools', 'How to tell which one you got', 'Use it as a first pass']) {
+    for (const heading of ['What HydraFusion is', 'Three patterns', 'How the app works', 'Live runs and replays', 'Workshop', 'The browser tools']) {
       assert.ok(tutorials.includes(`>${heading}</h`), `Missing tutorial: ${heading}`);
       assert.ok(!html.includes(`>${heading}</h`), `Tutorial still on the main page: ${heading}`);
     }
@@ -72,6 +72,19 @@ describe('static files and recordings', () => {
     assert.doesNotMatch(tutorials, /<script\b/);
     for (const id of ['demo-cards', 'viewer', 'run-details', 'pattern-rows', 'token-prices', 'run-checks', 'checks-body', 'reference-costs', 'live-costs']) {
       assert.ok(html.includes(`id="${id}"`), `Missing interactive view: ${id}`);
+    }
+  });
+
+  test('serves every tutorial screenshot, each with alt text', async () => {
+    const tutorials = await (await fetch(`${server.origin}/tutorials.html`)).text();
+    const images = [...tutorials.matchAll(/<img\b[^>]*>/g)].map(([tag]) => ({ src: tag.match(/\bsrc="([^"]+)"/)?.[1], alt: tag.match(/\balt="([^"]*)"/)?.[1] }));
+    assert.ok(images.length, 'The tutorials have no screenshots');
+    for (const { src, alt } of images) {
+      assert.ok(alt?.trim(), `${src} has no alt text`);
+      const res = await fetch(`${server.origin}${src}`);
+      assert.equal(res.status, 200, src);
+      assert.equal(res.headers.get('content-type'), 'image/png', src);
+      assert.ok((await res.arrayBuffer()).byteLength > 0, src);
     }
   });
 

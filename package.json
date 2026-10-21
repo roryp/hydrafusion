@@ -11,6 +11,7 @@
     "start": "node src/server.mjs",
     "demo": "node src/cli.mjs",
     "checks": "node checks/run-checks.mjs",
+    "screenshots": "node scripts/tutorial-screenshots.mjs",
     "lockfile:public": "node scripts/public-lockfile.mjs",
     "test": "node --test",
     "test:load": "node scripts/demo-load.mjs"

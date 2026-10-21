@@ -16,7 +16,7 @@ Start with recordings and fixed checks, which spend no AIU. Then try a live audi
 
 ## 1. Open the app
 
-Use the **live demo** above to join a hosted workshop; no local setup is needed. The main page keeps the interactive demos, checks and results together. Its **Tutorials** link opens the background guide to patterns, billing and accessibility testing.
+Use the **live demo** above to join a hosted workshop; no local setup is needed. The main page keeps the interactive demos, checks and results together. Its **Tutorials** link opens a short workshop, with screenshots, on HydraFusion, live runs and replays, and the browser tools.
 
 ### Run your own copy locally
 
@@ -282,6 +282,6 @@ azd down
 
 ## Further reading
 
-- Use **Tutorials** in the dashboard for the pattern, billing and VS Code walkthroughs; the page source is [public/tutorials.html](public/tutorials.html).
-- Edit the architecture diagram in [docs/architecture.excalidraw](docs/architecture.excalidraw) and the request sequence in [docs/sequence.mmd](docs/sequence.mmd).
+- Use **Tutorials** in the dashboard for the short workshop on HydraFusion, live runs and replays, and the browser tools; the page source is [public/tutorials.html](public/tutorials.html). After a dashboard change, run `npm run screenshots` to retake its screenshots in [public/images/tutorial](public/images/tutorial). It replays recordings and runs the fixed checks, so it spends no AIU.
+- Edit the architecture diagram in [docs/architecture.excalidraw](docs/architecture.excalidraw) and the request sequence in [docs/sequence.mmd](docs/sequence.mmd). The tutorials page uses a copy of the architecture PNG in [public/images/tutorial](public/images/tutorial), so update both.
 - HydraFusion is a research preview. Models, prices and routing change, so live results may differ from the recordings.
