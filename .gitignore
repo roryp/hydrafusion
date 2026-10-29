@@ -4,3 +4,4 @@ node_modules/
 runs/*
 !runs/.gitkeep
 *.log
+.playwright-mcp/
