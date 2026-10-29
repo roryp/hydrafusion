@@ -39,7 +39,7 @@ test('five dashboard users stay independent, including reload, overload and canc
   await pages[0].reload();
   await resumed;
   for (let i = 0; i < 5; i++) {
-    const stored = await pages[i].evaluate(() => JSON.parse(sessionStorage.getItem('hydrafusion.live-run')));
+    const stored = await pages[i].evaluate(() => JSON.parse(sessionStorage.getItem('copilot-fusion.live-run')));
     assert.equal(stored.id, runs[i].id);
   }
   await pages[0].getByRole('button', { name: 'Stop the run', exact: true }).click();
@@ -124,6 +124,7 @@ test('the simplified dashboard retains every interactive view and resumes a run 
   page.on('dialog', (dialog) => dialog.accept());
   await page.goto(server.origin);
   await page.locator('[data-demo="single"] [data-action="reference"]:enabled').waitFor();
+  assert.deepEqual(await page.locator('#demo-cards .tier').allTextContents(), ['Fusion High effort', 'Fusion Max effort', 'Fusion High effort']);
   assert.equal(await page.locator('main > section').first().getAttribute('id'), 'try');
   assert.equal(await page.locator('#demo-cards [data-action="live"]').count(), 3);
   assert.equal(await page.locator('#demo-cards [data-action="reference"]').count(), 3);
@@ -167,7 +168,7 @@ test('the simplified dashboard retains every interactive view and resumes a run 
   const { run } = await (await starting).json();
   await page.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
   await page.getByRole('navigation').getByRole('link', { name: 'Tutorials', exact: true }).click();
-  await page.getByRole('heading', { name: 'HydraFusion tutorials', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Copilot Fusion tutorials', exact: true }).waitFor();
   assert.equal(await page.locator('script').count(), 0);
   assert.equal(runner.runs[0].signal.aborted, false);
   assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.activeCount, 1);
@@ -175,10 +176,35 @@ test('the simplified dashboard retains every interactive view and resumes a run 
   await page.getByRole('navigation').getByRole('link', { name: 'Back to demos', exact: true }).click();
   await resumed;
   await page.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
-  assert.equal((await page.evaluate(() => JSON.parse(sessionStorage.getItem('hydrafusion.live-run')))).id, run.id);
+  assert.equal((await page.evaluate(() => JSON.parse(sessionStorage.getItem('copilot-fusion.live-run')))).id, run.id);
   runner.runs[0].finish();
   await page.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
   assert.deepEqual(errors, []);
+});
+
+test('a pre-launch tab resumes its live run and migrates its storage key', { timeout: 30_000 }, async (t) => {
+  const runner = heldRuns();
+  const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
+  t.after(() => server.close());
+  const browser = await launchBrowser();
+  t.after(() => browser.close());
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  await page.goto(server.origin);
+  const { run } = await (await fetch(`${server.origin}/api/live`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ demo: 'single' }),
+  })).json();
+  await page.evaluate((saved) => sessionStorage.setItem('hydrafusion.live-run', JSON.stringify(saved)), run);
+  const resumed = page.waitForRequest((req) => req.url().includes(`/api/live/${run.id}?after=0`));
+  await page.reload();
+  await resumed;
+  await page.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
+  assert.deepEqual(await page.evaluate(() => ({
+    current: JSON.parse(sessionStorage.getItem('copilot-fusion.live-run')),
+    legacy: sessionStorage.getItem('hydrafusion.live-run'),
+  })), { current: { id: run.id, title: run.title }, legacy: null });
+  assert.equal(runner.runs.length, 1, 'Resuming must not start another billable run');
+  runner.runs[0].finish();
+  await page.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
 });
 
 test('dashboard and tutorials keep their content within narrow screens', { timeout: 30_000 }, async (t) => {

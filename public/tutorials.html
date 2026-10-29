@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HydraFusion tutorials: a short workshop</title>
+  <title>GitHub Copilot Fusion tutorials: a short workshop</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -11,13 +11,13 @@
 
   <header class="masthead">
     <div class="wrap">
-      <p class="eyebrow">HydraFusion demos</p>
-      <h1>HydraFusion tutorials</h1>
-      <p class="subtitle">Learn how HydraFusion works, replay a run for free, then run one live.</p>
+      <p class="eyebrow">GitHub Copilot Fusion demos</p>
+      <h1>Copilot Fusion tutorials</h1>
+      <p class="subtitle">Learn how Copilot Fusion works, replay a run for free, then run one live.</p>
       <nav aria-label="Sections">
         <ul class="agenda">
           <li><a href="/#try">Back to demos</a></li>
-          <li><a href="#what">What HydraFusion is</a></li>
+          <li><a href="#what">What Copilot Fusion is</a></li>
           <li><a href="#app">How the app works</a></li>
           <li><a href="#workshop">Workshop</a></li>
           <li><a href="#browser-tools">The browser tools</a></li>
@@ -28,9 +28,18 @@
 
   <main class="wrap">
     <section id="what" aria-labelledby="what-title">
-      <h2 id="what-title">What HydraFusion is</h2>
-      <p class="lead">HydraFusion is a GitHub Copilot model, in research preview, that plans each request and picks a model for each step.</p>
-      <p>When you send a prompt, a router scores it and picks a <strong>pattern</strong>: one or more <strong>passes</strong>, each with its own model. The router decides; you can't pick the pattern yourself. There are two tiers, <strong>Default</strong> (<code>hydrafusion</code>) and <strong>Max</strong> (<code>hydrafusion-max</code>), and each has its own routing policy.</p>
+      <h2 id="what-title">What Copilot Fusion is</h2>
+      <p class="lead">GitHub Copilot Fusion is a generally available model router and orchestrator, not a single model. It combines multi-model orchestration with automatic model selection.</p>
+      <p>When you send a prompt, Copilot Fusion chooses the models and an execution <strong>pattern</strong>: one or more <strong>passes</strong>. You choose the effort level, not the pattern or the model for each pass.</p>
+
+      <h3>Three effort levels</h3>
+      <ul class="bullets">
+        <li><strong>Fusion Standard:</strong> versatile models for everyday coding.</li>
+        <li><strong>Fusion High:</strong> capable models for challenging tasks and deeper reasoning.</li>
+        <li><strong>Fusion Max:</strong> the most capable models for demanding tasks and complex reasoning.</li>
+      </ul>
+      <p>The live cards use High for Single and Cascade, and Max for Critique, preserving the workshop's routing choices. The router still decides which pattern actually runs. Only models enabled by your enterprise and organization policies are eligible.</p>
+      <p>Copilot Fusion is available on all Copilot plans in Visual Studio Code, the GitHub Copilot app, Copilot CLI and JetBrains IDEs. Update your client, select <strong>Copilot Fusion</strong> in the model picker, then choose an effort level. See the <a href="https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/">launch announcement</a> and <a href="https://docs.github.com/en/copilot/concepts/models/copilot-fusion">product documentation</a>.</p>
 
       <h3>Three patterns</h3>
       <div class="table-scroll" role="region" aria-label="The three patterns" tabindex="0">
@@ -50,10 +59,10 @@
 
     <section id="app" aria-labelledby="app-title">
       <h2 id="app-title">How the app works</h2>
-      <p class="lead">The app sends a prompt to HydraFusion through the Copilot SDK and shows each pass as it runs.</p>
+      <p class="lead">The app sends a prompt to Copilot Fusion through the Copilot SDK and shows each pass as it runs.</p>
       <p>Each demo card sends one prompt. For Critique and Cascade, the model also gets browser tools and a demo page with accessibility problems built in. Playwright carries out the tool calls in a headless Chrome on the server. On Azure, all of this runs in one Container App; locally, it runs on your machine.</p>
       <figure class="shot">
-        <img src="/images/tutorial/architecture.png" width="1468" height="468" loading="lazy" alt="Architecture. The dashboard in your browser talks to a Node.js app with the web server and the Copilot SDK. The app sends the prompt to HydraFusion in GitHub Copilot, which picks a pattern and models and returns the passes and cost. Tool calls and checks run in headless Chrome with Playwright, against the demo page. The app and Chrome run in one Azure Container App.">
+        <img src="/images/tutorial/architecture.png" width="1468" height="468" loading="lazy" alt="Architecture. The dashboard in your browser talks to a Node.js app with the web server and the Copilot SDK. The app sends the prompt to GitHub Copilot Fusion, which routes and orchestrates models and returns the passes and cost. Tool calls and checks run in headless Chrome with Playwright, against the demo page. The app and Chrome run in one Azure Container App.">
       </figure>
 
       <h3>Live runs and replays</h3>
@@ -61,7 +70,7 @@
         <div>
           <h4>Live run</h4>
           <ul class="bullets">
-            <li>Starts a new HydraFusion session</li>
+            <li>Starts a new Copilot Fusion session</li>
             <li>Spends AIU from the server's Copilot account</li>
             <li>Takes from seconds to several minutes</li>
             <li>Is saved when it ends, so anyone can replay it</li>
@@ -78,6 +87,7 @@
         </div>
       </div>
       <p class="note">AIU (AI Units) count every token a model reads and writes. Only live runs spend them; replays and the accessibility checks are free.</p>
+      <p class="note">Each model used is billed at its standard rate, with any applicable offer applied by Copilot. The launch announced a limited-time 30% model-cost discount for paid plans. This app displays SDK-reported usage and does not apply a second discount. Bundled recordings predate the launch and retain their original model IDs, tier labels and charges.</p>
     </section>
 
     <section id="workshop" aria-labelledby="workshop-title">
@@ -98,12 +108,12 @@
       <h3 id="step-route">2. See how it was routed</h3>
       <ol class="steps-list">
         <li>Below the viewer, open <strong>Routing, pattern and token details</strong>.</li>
-        <li><strong>Router</strong> shows how HydraFusion scored the prompt. <strong>Plan</strong> shows the pattern and the model for each pass.</li>
+        <li><strong>Router</strong> shows how Copilot Fusion scored the prompt. <strong>Plan</strong> shows the pattern and the model for each pass.</li>
       </ol>
       <figure class="shot">
         <img src="/images/tutorial/routing.png" width="1104" height="216" loading="lazy" alt="The Your request, Router and Plan boxes. The router scored reasoning 0.14, code 0.08, debugging 0.00 and tool use 0.23, and routed in 99 ms with the standard policy. The plan is Cascade: Main on GPT-6.1 Sol, Review on GPT-6 Luna, and Fix-up on Claude Opus 5.5 if needed.">
       </figure>
-      <p class="note">The prompt asks for the browser tools, so <strong>tool use</strong> scores highest. The scores come from HydraFusion; the app only shows them.</p>
+      <p class="note">The prompt asks for the browser tools, so <strong>tool use</strong> scores highest. The scores come from Copilot Fusion; the app only shows them.</p>
 
       <h3 id="step-tools">3. Follow the browser tools</h3>
       <ol class="steps-list">
@@ -140,7 +150,7 @@
 
     <section id="tools" aria-labelledby="browser-tools">
       <h2 id="browser-tools">The browser tools</h2>
-      <p class="lead">HydraFusion doesn't test the page itself. It asks for a browser tool, Playwright runs it in Chrome, and the result goes back to the model.</p>
+      <p class="lead">Copilot Fusion doesn't test the page itself. It asks for a browser tool, Playwright runs it in Chrome, and the result goes back to the model.</p>
       <div class="table-scroll" role="region" aria-label="Browser tools in live runs and in VS Code" tabindex="0">
         <table class="grid">
           <thead>
@@ -161,14 +171,14 @@
       <ol class="steps-list">
         <li>Run <strong>Browser: Open Integrated Browser</strong> and open the <a href="/demo-page/" target="_blank" rel="noopener noreferrer">demo page</a>.</li>
         <li>Select <strong>Share with Agent</strong> in the browser toolbar.</li>
-        <li>In a new chat, pick <strong>HydraFusion</strong> and send <q>quickly test this page with the browser tools</q>.</li>
+        <li>In a new chat, select <strong>Copilot Fusion</strong>, choose <strong>High</strong> effort, and send <q>quickly test this page with the browser tools</q>.</li>
       </ol>
       <p class="note">This spends AIU from your own Copilot plan. Treat the result as a first pass, and still test with a keyboard and a screen reader.</p>
     </section>
   </main>
 
   <footer class="wrap footer">
-    <p>HydraFusion is a research preview. Models, prices and routing change over time, so your runs may not match the recorded runs.</p>
+    <p>GitHub Copilot Fusion is generally available. Models, prices and routing change over time, so your runs may not match the historical recordings.</p>
   </footer>
 </body>
 </html>

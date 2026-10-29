@@ -1,8 +1,8 @@
 {
-  "name": "hydrafusion-demos",
+  "name": "copilot-fusion-demos",
   "version": "1.0.0",
   "private": true,
-  "description": "Runs a prompt for each HydraFusion pattern (Single, Critique and Cascade) against an accessibility demo page, shows each pass as it runs, and shows what each run cost.",
+  "description": "Demonstrates GitHub Copilot Fusion workflows (Single, Critique and Cascade) with accessibility testing, live traces, recordings and measured costs.",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -17,7 +17,7 @@
     "test:load": "node scripts/demo-load.mjs"
   },
   "dependencies": {
-    "@github/copilot-sdk": "^1.0.23",
+    "@github/copilot-sdk": "^1.0.28",
     "@playwright/mcp": "^0.0.83",
     "axe-core": "^4.14.0",
     "playwright": "^1.64.0"

@@ -1,6 +1,6 @@
-// Prints a run the way chat shows it: the workflow HydraFusion picked, then each pass as it runs.
+// Prints a run the way chat shows it: the workflow Copilot Fusion picked, then each pass as it runs.
 
-import { TOKEN_TYPES, patternName } from './shared/demos.mjs';
+import { TOKEN_TYPES, effortLabel, patternName } from './shared/demos.mjs';
 import {
   NANO_PER_AIU,
   applyEvent,
@@ -107,7 +107,7 @@ export function createPrinter(write = (line) => process.stdout.write(`${line}\n`
     switch (type) {
       case 'run.started':
         write('');
-        write(bold(`${data.title} demo · ${data.tier} tier (${data.model})`) + (data.source === 'reference' ? dim('  reference run') : data.replay ? dim('  replay') : ''));
+        write(bold(`${data.title} demo · ${effortLabel(data.tier)} (SDK: ${data.model})`) + (data.source === 'reference' ? dim('  reference run') : data.replay ? dim('  replay') : ''));
         write(`Prompt: ${data.prompt}`);
         if (data.pageUrl) write(dim(`Shared page: ${data.pageUrl}`));
         if (data.note) write(dim(data.note));

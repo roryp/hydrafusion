@@ -1,5 +1,5 @@
 import { CHECKS } from '/shared/checks.mjs';
-import { DEMOS, PATTERNS, TOKEN_TYPES, patternName } from '/shared/demos.mjs';
+import { DEMOS, PATTERNS, TOKEN_TYPES, effortLabel, patternName } from '/shared/demos.mjs';
 import {
   NANO_PER_AIU,
   applyEvent,
@@ -25,7 +25,8 @@ import {
 
 // Long runs are replayed faster so a replay takes about this long.
 const REPLAY_TARGET_MS = 20_000;
-const LIVE_RUN_STORAGE_KEY = 'hydrafusion.live-run';
+const LIVE_RUN_STORAGE_KEY = 'copilot-fusion.live-run';
+const LEGACY_LIVE_RUN_STORAGE_KEY = 'hydrafusion.live-run';
 
 const STATE_LABELS = {
   pending: 'Waiting',
@@ -125,7 +126,7 @@ async function loadConfig({ resume = false } = {}) {
   renderCards();
   if (resume && !state.live) {
     try {
-      const run = JSON.parse(sessionStorage.getItem(LIVE_RUN_STORAGE_KEY));
+      const run = JSON.parse(sessionStorage.getItem(LIVE_RUN_STORAGE_KEY) ?? sessionStorage.getItem(LEGACY_LIVE_RUN_STORAGE_KEY));
       if (run) {
         if (typeof run.id !== 'string' || typeof run.title !== 'string') throw new Error('Invalid saved run.');
         followRun(run);
@@ -182,7 +183,7 @@ function renderFlow() {
 
   request.replaceChildren(
     h('p', { class: 'quote' }, `“${trace.meta.prompt}”`),
-    h('span', { class: 'muted' }, `${trace.meta.tier} tier (${trace.meta.model})`),
+    h('span', { class: 'muted' }, `${effortLabel(trace.meta.tier)} (SDK: ${trace.meta.model})`),
   );
 
   const scores = formatScores(trace.plan?.scores);
@@ -341,7 +342,7 @@ function buildCards() {
   $('#demo-cards').replaceChildren(...DEMOS.map((demo) =>
     h('article', { class: 'card', 'data-demo': demo.id, 'aria-labelledby': `card-${demo.id}` },
       h('h3', { id: `card-${demo.id}` }, demo.title),
-      h('p', { class: 'tier' }, `${demo.tier} tier (${demo.model})`),
+      h('p', { class: 'tier' }, effortLabel(demo.tier)),
       h('pre', { class: 'prompt-box' }, demo.prompt),
       h('div', { class: 'actions' },
         h('button', { type: 'button', class: 'button', 'data-action': 'live', onclick: () => runLive(demo) },
@@ -494,7 +495,7 @@ function viewerBody(trace) {
   const meta = trace.meta ?? {};
   const nodes = [];
   if (meta.prompt) nodes.push(h('p', {}, h('strong', {}, 'Prompt: '), meta.prompt));
-  if (meta.tier) nodes.push(h('p', { class: 'muted' }, `${meta.tier} tier (${meta.model})${meta.pageUrl ? ', with the demo page shared' : ''}`));
+  if (meta.tier) nodes.push(h('p', { class: 'muted' }, `${effortLabel(meta.tier)}${meta.pageUrl ? ', with the demo page shared' : ''}`));
   if (meta.note) nodes.push(h('p', { class: 'note' }, meta.note));
 
   if (trace.route?.failed) {
@@ -610,6 +611,7 @@ function rememberRun(run) {
   try {
     if (run) sessionStorage.setItem(LIVE_RUN_STORAGE_KEY, JSON.stringify(run));
     else sessionStorage.removeItem(LIVE_RUN_STORAGE_KEY);
+    sessionStorage.removeItem(LEGACY_LIVE_RUN_STORAGE_KEY);
   } catch (err) {
     showLiveMessage(`Could not save this tab's run for reload: ${err.message}`);
   }
@@ -617,7 +619,7 @@ function rememberRun(run) {
 
 async function runLive(demo) {
   if (!canStartLive()) return;
-  const confirmed = window.confirm(`Run the ${demo.title} demo live?\n\nThis starts a new HydraFusion session (${demo.tier} tier) and spends AIU from the Copilot plan of the GitHub account this server uses.`);
+  const confirmed = window.confirm(`Run the ${demo.title} demo live?\n\nThis starts a new Copilot Fusion session (${effortLabel(demo.tier)}) and spends AIU from the Copilot plan of the GitHub account this server uses.`);
   if (!confirmed) return;
   state.liveMessage = null;
   state.startingLive = true;
@@ -760,7 +762,7 @@ function groupedCostTable(recordings, { withReplay }) {
         ? rec.rows.map((row, i) => h('tr', {},
             i === 0
               ? h('th', { scope: 'rowgroup', rowspan: String(rec.rows.length) },
-                  `${patternName(rec.pattern)}, ${rec.tier}`,
+                  `${patternName(rec.pattern)}, ${effortLabel(rec.tier)}`,
                   withReplay ? [h('br'), h('span', { class: 'muted' }, `${rec.title}`), h('br'),
                     h('span', { class: 'muted' }, `${formatAiu(rec.aiu)} AIU, ${formatDuration(rec.durationMs)}`), h('br'),
                     h('button', { type: 'button', class: 'button secondary', onclick: () => replayRecording(rec.id) }, 'Replay', h('span', { class: 'visually-hidden' }, `: ${rec.title}`))] : null)
@@ -783,7 +785,7 @@ function renderCostTables() {
       h('p', { class: 'headline' },
         h('strong', {}, `${formatAiu(rec.aiu)} AIU`),
         h('span', {}, `${patternName(rec.pattern)}${rec.premium != null ? `, ${plural(rec.premium, 'premium request')}` : ''}`)))),
-    h('p', { class: 'note' }, 'One run each. The Critique run used older models and missed some problems.'));
+    h('p', { class: 'note' }, 'Historical pre-launch runs, with their original models and charges. The old Default tier is now Fusion High. The Critique run used older models and missed some problems.'));
 
   const live = state.recordings.filter((r) => r.source === 'live');
   $('#live-costs').replaceChildren(live.length

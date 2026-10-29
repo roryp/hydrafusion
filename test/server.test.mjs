@@ -61,14 +61,18 @@ describe('static files and recordings', () => {
   test('keeps the dashboard concise and moves the tutorials to a linked static page', async () => {
     const html = await (await fetch(`${server.origin}/`)).text();
     const intro = html.match(/<h1>[^<]+<\/h1>\s*<p class="subtitle">([^<]+)<\/p>\s*<nav\b/)?.[1];
-    assert.equal(intro, 'Run HydraFusion live, replay a recording, or check the demo page.');
+    assert.equal(intro, 'Run Copilot Fusion live, replay a recording, or check the demo page.');
+    assert.match(html, /<h1>GitHub Copilot Fusion demos<\/h1>/);
+    assert.doesNotMatch(html, /research preview/i);
     assert.match(html, /href="\/tutorials\.html">Tutorials<\/a>/);
     const tutorials = await (await fetch(`${server.origin}/tutorials.html`)).text();
-    for (const heading of ['What HydraFusion is', 'Three patterns', 'How the app works', 'Live runs and replays', 'Workshop', 'The browser tools']) {
+    for (const heading of ['What Copilot Fusion is', 'Three effort levels', 'Three patterns', 'How the app works', 'Live runs and replays', 'Workshop', 'The browser tools']) {
       assert.ok(tutorials.includes(`>${heading}</h`), `Missing tutorial: ${heading}`);
       assert.ok(!html.includes(`>${heading}</h`), `Tutorial still on the main page: ${heading}`);
     }
     assert.match(tutorials, /href="\/#try">Back to demos<\/a>/);
+    for (const effort of ['Fusion Standard', 'Fusion High', 'Fusion Max']) assert.ok(tutorials.includes(effort));
+    assert.doesNotMatch(tutorials, /research preview/i);
     assert.doesNotMatch(tutorials, /<script\b/);
     for (const id of ['demo-cards', 'viewer', 'run-details', 'pattern-rows', 'token-prices', 'run-checks', 'checks-body', 'reference-costs', 'live-costs']) {
       assert.ok(html.includes(`id="${id}"`), `Missing interactive view: ${id}`);

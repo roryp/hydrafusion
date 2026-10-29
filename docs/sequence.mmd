@@ -30,12 +30,12 @@ sequenceDiagram
     participant D as Dashboard
     participant S as Web server
     participant R as Live runner<br/>(Copilot SDK)
-    participant H as HydraFusion<br/>(GitHub Copilot)
+    participant H as Copilot Fusion<br/>(GitHub Copilot)
     participant B as Browser tools<br/>(Playwright MCP)
 
     You->>D: Run live
     D->>S: Start the demo
-    S->>R: New session on the tier
+    S->>R: New session at the chosen effort
     R->>H: Prompt and shared page
     H->>H: Pick a pattern and models
     loop Each pass

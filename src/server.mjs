@@ -27,7 +27,7 @@ import { liveAuth, runLiveDemo } from './live.mjs';
 import { DEMO_PAGE_DIR, ROOT, isInside, isMain } from './paths.mjs';
 import { listRecordings, loadRecording, saveRecording } from './recordings.mjs';
 import { CHECKS } from './shared/checks.mjs';
-import { DEMOS, findDemo } from './shared/demos.mjs';
+import { DEMOS, effortLabel, findDemo } from './shared/demos.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -119,7 +119,7 @@ function createLiveRuns({ runLive, save, auth, pageUrl }) {
       const run = {
         id: randomUUID(),
         demoId: demo.id,
-        title: `${demo.title} demo, ${demo.tier} tier`,
+        title: `${demo.title} demo, ${effortLabel(demo.tier)}`,
         events: [],
         done: false,
         recordingId: null,
@@ -364,7 +364,7 @@ if (isMain(import.meta.url)) {
   startServer()
     .then((server) => {
       const auth = liveAuth();
-      console.log(`HydraFusion demos:  ${server.origin}/`);
+      console.log(`GitHub Copilot Fusion demos:  ${server.origin}/`);
       console.log(`Demo page:          ${server.pageUrl}`);
       console.log(`Live runs:          ${auth.gitHubToken ? 'on, with COPILOT_GITHUB_TOKEN' : auth.useLoggedInUser ? 'on, with your signed-in account' : 'off (no GitHub token)'}`);
       console.log('Press Ctrl+C to stop.');

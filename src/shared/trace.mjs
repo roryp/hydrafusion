@@ -1,4 +1,4 @@
-// Shared by Node and the browser. Folds recorded run events into one view of a HydraFusion turn:
+// Shared by Node and the browser. Folds recorded run events into one view of a Copilot Fusion turn:
 // the route, the pipeline of passes and what each pass cost.
 //
 // Every event is { t, type, data }, where t is milliseconds since the run started.

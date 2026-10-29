@@ -14,7 +14,7 @@ import {
   totals,
 } from '../src/shared/trace.mjs';
 
-// Shaped like the SDK events from a real Default-tier run, which picked Critique.
+// Legacy pre-launch SDK events remain replayable; this Default-tier run picked Critique.
 const FUSION = 'fusion-test';
 const critiqueRun = [
   { t: 0, type: 'run.started', data: { demoId: 'single', title: 'Single', tier: 'Default', model: 'hydrafusion', prompt: 'In one sentence, what does WCAG 1.1.1 require? No tools.', expectedPattern: 'single', source: 'live', models: { 'claude-opus-5.5': { name: 'Claude Opus 5.5', prices: { input: 400, output: 2000 } }, 'gpt-6-luna': { name: 'GPT-6 Luna', prices: { input: 10, output: 50 } } } } },

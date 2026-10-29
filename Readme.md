@@ -1,9 +1,21 @@
-# HydraFusion accessibility workshop
+# GitHub Copilot Fusion accessibility workshop
 
-HydraFusion is a GitHub Copilot model, in research preview, that plans a request and picks a model for each step. In this workshop, you'll use it to inspect a page with accessibility problems built in, watch the models work, and compare their results and costs.
+GitHub Copilot Fusion is a generally available model router and orchestrator, not a single model. It combines Project HydraFusion's multi-model orchestration with Copilot's automatic model selection. In this workshop, you'll use it to inspect a page with accessibility problems built in, watch the models work, and compare their results and costs.
+
+The [October 28, 2026 launch announcement](https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/) introduces three effort levels:
+
+| Effort level | Priority |
+|---|---|
+| Fusion Standard | Versatile models for everyday coding |
+| Fusion High | Capable models for challenging tasks and deeper reasoning |
+| Fusion Max | The most capable models for demanding tasks and complex reasoning |
+
+Select **Copilot Fusion** in the model picker, then choose an effort level. It is available on all Copilot plans in Visual Studio Code, the GitHub Copilot app, Copilot CLI and JetBrains IDEs. Update your client first. Enterprise and organization model policies still control which models it can use.
 
 **Live demo:** https://aka.ms/hydrafusion  
-**Slides:** [HydraFusion and Accessibility testing](slides/hydrafusion-101.pdf)
+**Slides:** [GitHub Copilot Fusion and accessibility testing](slides/copilot-fusion-101.pdf)
+
+The live-demo short link and repository URL retain their existing addresses; rebranding the workshop does not rename external resources.
 
 Start with recordings and fixed checks, which spend no AIU. Then try a live audit, follow the SDK and browser-tool code, and optionally host the workshop on Azure.
 
@@ -16,7 +28,7 @@ Start with recordings and fixed checks, which spend no AIU. Then try a live audi
 
 ## 1. Open the app
 
-Use the **live demo** above to join a hosted workshop; no local setup is needed. The main page keeps the interactive demos, checks and results together. Its **Tutorials** link opens a short workshop, with screenshots, on HydraFusion, live runs and replays, and the browser tools.
+Use the **live demo** above to join a hosted workshop; no local setup is needed. The main page keeps the interactive demos, checks and results together. Its **Tutorials** link opens a short workshop, with screenshots, on Copilot Fusion, live runs and replays, and the browser tools.
 
 ### Run your own copy locally
 
@@ -24,7 +36,7 @@ You need:
 
 - Node.js **22.12 or later**.
 - Google Chrome for the browser tools and accessibility checks.
-- For live runs, a GitHub account with Copilot and HydraFusion preview access. Sign in with the Copilot CLI, or set the `COPILOT_GITHUB_TOKEN` environment variable to a token with Copilot access. Do not put the token in source files.
+- For live runs, a GitHub account with Copilot and model policies that allow Copilot Fusion. Sign in with the Copilot CLI, or set the `COPILOT_GITHUB_TOKEN` environment variable to a token with Copilot access. Do not put the token in source files.
 
 From the repository folder:
 
@@ -53,7 +65,7 @@ Look for these differences:
 | Critique | A solver drafts, a critic reviews, and the original solver revises if needed |
 | Cascade | A solver answers, a judge scores it, and a stronger model repairs it if needed |
 
-Reference recordings may not include every router score or token-level detail. Their models and prices are examples, not a promise of what a new run will use.
+Reference recordings may not include every router score or token-level detail. The bundled recordings predate general availability and retain their original SDK identifiers, tier labels and charges. The old Default tier corresponds to Fusion High; it does not mean Fusion Standard. Their models and prices are historical examples, not a promise of what a new run will use.
 
 You can also replay all three in a separate terminal, without spending AIU:
 
@@ -86,21 +98,25 @@ npm run checks
 
 **Live runs spend AIU from the Copilot account used by the server.** In a hosted workshop, that is the host's account, not each participant's.
 
+Copilot Fusion bills each model it uses at that model's standard rate. The launch announced a limited-time **30% model-cost discount on paid plans**; consult the announcement for the offer. This app displays SDK-reported usage without adding its own discount or repricing historical recordings.
+
 The cards send these prompts in fresh sessions:
 
-| Demo card | Tier | Prompt |
+| Demo card | Effort | Prompt |
 |---|---|---|
-| Single | Default | In one sentence, what does WCAG 1.1.1 require? No tools. |
-| Critique | Max | Audit this page for WCAG 2.2 AA. Don't change any files. List each problem and the rule it breaks. |
-| Cascade | Default | quickly test this page with the browser tools |
+| Single | Fusion High | In one sentence, what does WCAG 1.1.1 require? No tools. |
+| Critique | Fusion Max | Audit this page for WCAG 2.2 AA. Don't change any files. List each problem and the rule it breaks. |
+| Cascade | Fusion High | quickly test this page with the browser tools |
+
+These effort choices preserve the original demos' routing behavior; they are not a mapping of effort levels to patterns. Fusion Standard is also available in Copilot clients.
 
 1. Try **Run live** on **Single** first to see a short text-only request. It does not audit the page.
 2. Run **Cascade** to let the model inspect the demo page with browser tools.
 3. Watch the tool calls and passes, then compare the answer with the measured problems from step 3.
-4. Try **Critique** for a deeper audit on the Max tier. Allow several minutes for a long audit.
+4. Try **Critique** for a deeper audit at Max effort. Allow several minutes for a long audit.
 5. Compare costs and replay the saved results without starting more model requests.
 
-The card names describe the patterns the prompts tend to get. **HydraFusion's router decides the actual pattern**, so always read the workflow shown in the viewer.
+The card names describe the patterns the prompts tend to get. **Copilot Fusion's router decides the actual pattern**, so always read the workflow shown in the viewer.
 
 The live model chooses its own checks; it does not automatically rerun the eight fixed snippets. Ask whether its findings are backed by measurements, which problems it missed, and whether extra passes improved the answer.
 
@@ -129,7 +145,7 @@ The app uses **plain JavaScript running on Node.js**. No JavaScript framework is
 | Copilot sessions | The official `@github/copilot-sdk` npm package | [src/live.mjs](src/live.mjs) |
 | Browser tools | Playwright MCP controlling Chrome | [src/browser-mcp.mjs](src/browser-mcp.mjs) |
 
-![The dashboard talks to a Node.js server and Copilot SDK in an Azure Container App. The SDK connects to HydraFusion in GitHub Copilot, while Playwright drives headless Chrome to test the demo page.](docs/architecture.png)
+![The dashboard talks to a Node.js server and Copilot SDK in an Azure Container App. The SDK connects to GitHub Copilot Fusion, while Playwright drives headless Chrome to test the demo page.](docs/architecture.png)
 
 ### Trace a live request
 
@@ -156,7 +172,13 @@ try {
 }
 ```
 
-The session options select `hydrafusion` or `hydrafusion-max` and configure the browser tools, read-only permissions and preview flags. Each live run gets its own session.
+The session options select the effort's SDK routing identifier and configure the browser tools, read-only permissions and runtime feature flags. Each live run gets its own session.
+
+### SDK and replay compatibility
+
+The current SDK runtime retains the pre-launch wire identifiers: `auto` for Fusion Standard, `hydrafusion` for Fusion High, and `hydrafusion-max` for Fusion Max. The `HYDRAFUSION`, `HYDRAFUSION_ROLLOUT` and `HYDRAFUSION_PLAN_V2` feature-flag keys are also SDK protocol names, not public product names. Do not mechanically rename these values or the `session.fusion_*` / `assistant.fusion_*` event types. They are centralized in [src/shared/demos.mjs](src/shared/demos.mjs) and [src/live.mjs](src/live.mjs).
+
+Recorded events and original recording titles remain unchanged so their routing, models and billing can still be inspected faithfully. The viewer translates the old Default effort label to Fusion High. Existing tabs migrate their saved live-run pointer to `copilot-fusion.live-run` when resumed.
 
 ![A live request creates a Copilot session, sends the prompt and shared page, executes browser tools, receives the model's answer and usage, and saves the events while the dashboard follows them by long polling.](docs/sequence.png)
 
@@ -192,7 +214,7 @@ This is the facilitator step. Skip deployment if you're using an existing hosted
 
 ### Deploy the app
 
-You need an Azure subscription, the Azure Developer CLI (`azd`) and the GitHub CLI (`gh`), both signed in. The GitHub account needs Copilot and HydraFusion access.
+You need an Azure subscription, the Azure Developer CLI (`azd`) and the GitHub CLI (`gh`), both signed in. The GitHub account needs Copilot with policies that allow Copilot Fusion.
 
 ```sh
 azd up
@@ -215,10 +237,10 @@ Chrome is **not a separate Azure service**. It is an ordinary browser process, w
 2. **Launch it headless.** `browserServerConfig` in [src/live.mjs](src/live.mjs) defaults to `chrome`, uses an isolated browser profile, and adds:
 
    ```javascript
-   if (!process.env.HF_HEADED) args.push('--headless');
+   if (!(process.env.FUSION_HEADED ?? process.env.HF_HEADED)) args.push('--headless');
    ```
 
-   `HF_HEADED` is not set in the Azure deployment, so live browser tools run headless. The SDK starts the local [browser-mcp.mjs](src/browser-mcp.mjs) process, which runs Playwright MCP and controls Chrome.
+   `FUSION_HEADED` is not set in the Azure deployment, so live browser tools run headless. Set `FUSION_HEADED=1` locally for a visible browser, or `FUSION_BROWSER=chromium` to use Playwright's installed Chromium. The old `HF_HEADED` and `HF_BROWSER` variables remain compatibility aliases; the new names take precedence. The SDK starts the local [browser-mcp.mjs](src/browser-mcp.mjs) process, which runs Playwright MCP and controls Chrome.
 
 3. **Deploy that image to Azure.** [azure.yaml](azure.yaml) configures the web service as:
 
@@ -247,7 +269,7 @@ The Azure limits are the `liveRunConcurrencyLimit` and `liveRunDailyLimit` param
 
 Keep these constraints in mind:
 
-- **Model capacity:** HydraFusion uses GitHub Copilot, not an Azure OpenAI or Foundry model deployment. There is no Azure model TPM setting to raise. Copilot usage allowances and rate limits apply across all users; extra container replicas don't increase them. See [Copilot usage limits](https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/usage-limits).
+- **Model capacity:** Copilot Fusion uses GitHub Copilot, not an Azure OpenAI or Foundry model deployment. There is no Azure model TPM setting to raise. Copilot usage allowances and rate limits apply across all users; extra container replicas don't increase them. See [Copilot usage limits](https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/usage-limits).
 - **Spending:** the daily cap limits starts, not tokens or AIU spend. Keep recordings ready as a fallback.
 - **Restarts:** limits and live events are in memory, and new recordings are on temporary container storage. Restarting or deploying resets the counter and loses live state and new recordings; bundled recordings remain. Finish active demos before deploying.
 - **Scaling out:** keep one replica unless you first move run ownership, events, admission limits and recordings to shared storage and route poll/stop requests to the owning worker.
@@ -282,6 +304,6 @@ azd down
 
 ## Further reading
 
-- Use **Tutorials** in the dashboard for the short workshop on HydraFusion, live runs and replays, and the browser tools; the page source is [public/tutorials.html](public/tutorials.html). After a dashboard change, run `npm run screenshots` to retake its screenshots in [public/images/tutorial](public/images/tutorial). It replays recordings and runs the fixed checks, so it spends no AIU.
+- Use **Tutorials** in the dashboard for the short workshop on Copilot Fusion, live runs and replays, and the browser tools; the page source is [public/tutorials.html](public/tutorials.html). After a dashboard change, run `npm run screenshots` to retake its screenshots in [public/images/tutorial](public/images/tutorial). It replays recordings and runs the fixed checks, so it spends no AIU.
 - Edit the architecture diagram in [docs/architecture.excalidraw](docs/architecture.excalidraw) and the request sequence in [docs/sequence.mmd](docs/sequence.mmd). The tutorials page uses a copy of the architecture PNG in [public/images/tutorial](public/images/tutorial), so update both.
-- HydraFusion is a research preview. Models, prices and routing change, so live results may differ from the recordings.
+- Read [About GitHub Copilot Fusion](https://docs.github.com/en/copilot/concepts/models/copilot-fusion) for current effort levels, availability and policies. Models, prices and routing change, so live results may differ from the recordings.

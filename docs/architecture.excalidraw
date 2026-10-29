@@ -1,7 +1,7 @@
 {
   "type": "excalidraw",
   "version": 2,
-  "source": "hydrafusion-demos",
+  "source": "copilot-fusion-demos",
   "elements": [
     {
       "id": "dashboard",
@@ -349,7 +349,7 @@
       "lineHeight": 1.25
     },
     {
-      "id": "hydrafusion",
+      "id": "copilot-fusion",
       "type": "rectangle",
       "x": 1140,
       "y": 105,
@@ -408,13 +408,13 @@
       "updated": 1,
       "link": null,
       "locked": false,
-      "text": "HydraFusion\nin GitHub Copilot\n\npicks a pattern and models",
-      "originalText": "HydraFusion\nin GitHub Copilot\n\npicks a pattern and models",
+      "text": "GitHub Copilot Fusion\n\nroutes and orchestrates\nmodels for each task",
+      "originalText": "GitHub Copilot Fusion\n\nroutes and orchestrates\nmodels for each task",
       "fontSize": 20,
       "fontFamily": 2,
       "textAlign": "center",
       "verticalAlign": "middle",
-      "containerId": "hydrafusion",
+      "containerId": "copilot-fusion",
       "autoResize": true,
       "lineHeight": 1.25
     },

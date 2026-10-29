@@ -9,9 +9,9 @@ import { CHECKS } from '../src/shared/checks.mjs';
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
 // Uses an installed Chrome or Edge, so no browser download is needed.
-// Set HF_BROWSER=chromium to use Playwright's own build (after "npx playwright install chromium").
+// Set FUSION_BROWSER=chromium to use Playwright's own build (after "npx playwright install chromium").
 export async function launchBrowser() {
-  const channels = [...new Set([process.env.HF_BROWSER || 'chrome', 'chrome', 'msedge', 'chromium'])];
+  const channels = [...new Set([process.env.FUSION_BROWSER || process.env.HF_BROWSER || 'chrome', 'chrome', 'msedge', 'chromium'])];
   let lastError;
   for (const channel of channels) {
     try {

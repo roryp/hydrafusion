@@ -1,12 +1,23 @@
-// The three demos, and the names HydraFusion uses for its patterns and passes.
+// The three demos, and the names Copilot Fusion uses for its patterns and passes.
 // Shared by Node and the browser.
+
+// These SDK routing identifiers retain their pre-launch names.
+export const TIERS = {
+  Standard: 'auto',
+  High: 'hydrafusion',
+  Max: 'hydrafusion-max',
+};
+
+export function effortLabel(tier) {
+  return `Fusion ${tier === 'Default' ? 'High' : tier} effort`;
+}
 
 export const DEMOS = [
   {
     id: 'single',
     title: 'Single',
-    tier: 'Default',
-    model: 'hydrafusion',
+    tier: 'High',
+    model: TIERS.High,
     expectedPattern: 'single',
     prompt: 'In one sentence, what does WCAG 1.1.1 require? No tools.',
     sharePage: false,
@@ -15,7 +26,7 @@ export const DEMOS = [
     id: 'critique',
     title: 'Critique',
     tier: 'Max',
-    model: 'hydrafusion-max',
+    model: TIERS.Max,
     expectedPattern: 'critique',
     prompt: "Audit this page for WCAG 2.2 AA. Don't change any files. List each problem and the rule it breaks.",
     sharePage: true,
@@ -23,18 +34,13 @@ export const DEMOS = [
   {
     id: 'cascade',
     title: 'Cascade',
-    tier: 'Default',
-    model: 'hydrafusion',
+    tier: 'High',
+    model: TIERS.High,
     expectedPattern: 'cascade',
     prompt: 'quickly test this page with the browser tools',
     sharePage: true,
   },
 ];
-
-export const TIERS = {
-  Default: 'hydrafusion',
-  Max: 'hydrafusion-max',
-};
 
 // The steps of each pattern, and the name chat gives each pass while it runs.
 export const PATTERNS = {

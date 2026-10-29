@@ -71,7 +71,7 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
       assert.equal(events.filter((event) => event.type === 'run.started').length, 1);
       assert.equal(events.find((event) => event.type === 'run.started').data.demoId, run.demoId);
       assert.equal(events.filter((event) => event.type === 'session.error').length, 0, 'A model request reported an error.');
-      assert.ok(events.some((event) => event.type === 'session.fusion_resolved'), 'HydraFusion did not return a route.');
+      assert.ok(events.some((event) => event.type === 'session.fusion_resolved'), 'Copilot Fusion did not return a route.');
       const trace = buildTrace(events);
       assert.ok(finalAnswer(trace)?.content.trim(), 'No final answer was returned.');
       assert.ok(trace.tools.some((tool) => tool.name === 'browser_navigate' && tool.status === 'ok'), 'The run did not navigate to the demo page.');

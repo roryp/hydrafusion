@@ -10,7 +10,7 @@ import { createPrinter } from './terminal.mjs';
 
 const USAGE = `Usage: npm run demo -- <single|critique|cascade|all> [--replay [reference|last]] [--speed <n>]
 
-  Without --replay, each demo runs live against HydraFusion in a new session and spends AIU.
+  Without --replay, each demo runs live against GitHub Copilot Fusion in a new session and spends AIU.
   Live runs are saved to runs/ so you can replay them later.
 
   --replay reference   replay the reference run of that pattern (no AIU)

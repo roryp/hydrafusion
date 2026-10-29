@@ -1,5 +1,5 @@
-// Runs one demo against HydraFusion through the Copilot SDK and records what chat would show:
-// the workflow HydraFusion picked, each pass as it runs, and what each pass cost.
+// Runs one demo against Copilot Fusion through the Copilot SDK and records what chat would show:
+// the workflow Copilot Fusion picked, each pass as it runs, and what each pass cost.
 
 import { CopilotClient } from '@github/copilot-sdk';
 import { randomUUID } from 'node:crypto';
@@ -8,10 +8,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { ROOT, RUNS_DIR, isInside } from './paths.mjs';
 import { withoutAppSecrets } from './secrets.mjs';
+import { effortLabel } from './shared/demos.mjs';
 
-// HydraFusion is a research preview. VS Code turns these flags on for its chat;
-// an SDK host has to opt in itself. The service still decides whether your account can route.
-export const HYDRAFUSION_FEATURE_FLAGS = {
+// The SDK runtime still uses legacy protocol flags for Fusion orchestration.
+// Keep their wire names; the service decides which models your account can use.
+export const FUSION_FEATURE_FLAGS = {
   HYDRAFUSION: true,
   HYDRAFUSION_ROLLOUT: true,
   HYDRAFUSION_PLAN_V2: true,
@@ -66,11 +67,11 @@ export function browserServerConfig(pageUrl, id = randomUUID()) {
   const args = [
     path.join(ROOT, 'src', 'browser-mcp.mjs'),
     '--isolated',
-    '--browser', process.env.HF_BROWSER || 'chrome',
+    '--browser', process.env.FUSION_BROWSER || process.env.HF_BROWSER || 'chrome',
     '--viewport-size', '1280x800',
     '--output-dir', path.join(RUNS_DIR, 'playwright-mcp', id),
   ];
-  if (!process.env.HF_HEADED) args.push('--headless');
+  if (!(process.env.FUSION_HEADED ?? process.env.HF_HEADED)) args.push('--headless');
   if (process.env.BROWSER_NO_SANDBOX) args.push('--no-sandbox');
   if (pageUrl) args.push('--allowed-origins', new URL(pageUrl).origin);
   return { type: 'local', command: process.execPath, args, tools: BROWSER_TOOLS, timeout: 120_000 };
@@ -129,7 +130,7 @@ function readOnlyPermissions(request) {
 function shareBrowserPage(pageUrl) {
   return {
     type: 'extension_context',
-    extensionId: 'hydrafusion-demos',
+    extensionId: 'copilot-fusion-demos',
     title: `Browser page: ${DEMO_PAGE_TITLE}`,
     capturedAt: new Date().toISOString(),
     payload: {
@@ -233,7 +234,7 @@ function runId(demo, startedAt) {
 }
 
 /**
- * Runs one demo in a new session, the way you'd open a new chat, set the tier and send the prompt.
+ * Runs one demo in a new session, the way you'd open a new chat, choose the effort and send the prompt.
  * Returns a recording that the CLI and the dashboard can replay.
  */
 export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, auth = liveAuth() } = {}) {
@@ -276,9 +277,9 @@ export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, a
 
     session = await client.createSession({
       model: demo.model,
-      featureFlags: HYDRAFUSION_FEATURE_FLAGS,
+      featureFlags: FUSION_FEATURE_FLAGS,
       enableExperimentalMode: true,
-      clientName: 'hydrafusion-demos',
+      clientName: 'copilot-fusion-demos',
       workingDirectory: ROOT,
       systemMessage: { mode: 'append', content: READ_ONLY_NOTE },
       disabledMcpServers: await userMcpServerNames(client),
@@ -322,7 +323,7 @@ export async function runLiveDemo(demo, { pageUrl, onEvent = () => {}, signal, a
 
   return {
     id,
-    title: `${demo.title} demo, ${demo.tier} tier (live, ${startedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC)`,
+    title: `${demo.title} demo, ${effortLabel(demo.tier)} (live, ${startedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC)`,
     source: 'live',
     demoId: demo.id,
     savedAt: new Date().toISOString(),
