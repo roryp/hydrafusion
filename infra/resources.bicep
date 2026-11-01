@@ -10,6 +10,13 @@ param webImageName string
 @secure()
 param copilotGitHubToken string
 
+param gitHubOAuthClientId string
+
+@secure()
+param gitHubOAuthClientSecret string
+
+param adminGitHubId string
+
 param liveRunDailyLimit int
 param liveRunConcurrencyLimit int
 
@@ -70,7 +77,11 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-var secrets = empty(copilotGitHubToken) ? [] : [{ name: 'copilot-github-token', value: copilotGitHubToken }]
+var gitHubAuthEnabled = !empty(gitHubOAuthClientId) && !empty(gitHubOAuthClientSecret)
+var secrets = concat(
+  empty(copilotGitHubToken) ? [] : [{ name: 'copilot-github-token', value: copilotGitHubToken }],
+  gitHubAuthEnabled ? [{ name: 'github-oauth-client-secret', value: gitHubOAuthClientSecret }] : []
+)
 var secretEnv = empty(copilotGitHubToken) ? [] : [{ name: 'COPILOT_GITHUB_TOKEN', secretRef: 'copilot-github-token' }]
 
 resource web 'Microsoft.App/containerApps@2024-03-01' = {
@@ -114,6 +125,8 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'ALLOWED_HOSTS', value: '${webName}.${environment.properties.defaultDomain}' }
             { name: 'LIVE_RUN_DAILY_LIMIT', value: string(liveRunDailyLimit) }
             { name: 'LIVE_RUN_CONCURRENCY_LIMIT', value: string(liveRunConcurrencyLimit) }
+            { name: 'AZURE_AUTH_ENABLED', value: string(gitHubAuthEnabled) }
+            { name: 'ADMIN_GITHUB_ID', value: adminGitHubId }
           ], secretEnv)
         }
       ]
@@ -123,6 +136,25 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
         maxReplicas: 1
       }
     }
+  }
+}
+
+resource webAuth 'Microsoft.App/containerApps/authConfigs@2024-03-01' = {
+  parent: web
+  name: 'current'
+  properties: {
+    platform: { enabled: gitHubAuthEnabled }
+    globalValidation: { unauthenticatedClientAction: 'AllowAnonymous' }
+    httpSettings: { requireHttps: true }
+    identityProviders: gitHubAuthEnabled ? {
+      gitHub: {
+        enabled: true
+        registration: {
+          clientId: gitHubOAuthClientId
+          clientSecretSettingName: 'github-oauth-client-secret'
+        }
+      }
+    } : {}
   }
 }
 

@@ -14,6 +14,7 @@ const RECORDING_ID = '2026-10-20_07-59-38-cascade';
 // The stand-in live run holds after this many tool calls, so the screenshot shows a run in progress.
 const PAUSE_AFTER_TOOL_CALLS = 8;
 const SCALE = 2;
+const SCREENSHOT_ADMIN_ID = '1';
 
 function recordedLiveRun(recording) {
   return async (demo, { signal, onEvent }) => {
@@ -59,10 +60,17 @@ const recording = await loadRecording(RECORDING_ID);
 if (!recording) throw new Error(`Recording ${RECORDING_ID} not found.`);
 await mkdir(OUT_DIR, { recursive: true });
 
-const server = await startServer({ port: 0, auth: { enabled: true }, runLive: recordedLiveRun(recording), save: async () => {} });
+const server = await startServer({
+  port: 0, azureAuthEnabled: true, adminGitHubId: SCREENSHOT_ADMIN_ID,
+  auth: { enabled: true }, runLive: recordedLiveRun(recording), save: async () => {},
+});
 const browser = await launchBrowser();
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: SCALE, reducedMotion: 'reduce' });
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 900 }, deviceScaleFactor: SCALE, reducedMotion: 'reduce',
+    // Emulate Easy Auth only on this loopback server with a stand-in model.
+    extraHTTPHeaders: { 'X-MS-CLIENT-PRINCIPAL-IDP': 'github', 'X-MS-CLIENT-PRINCIPAL-ID': SCREENSHOT_ADMIN_ID },
+  });
   page.on('dialog', (dialog) => dialog.accept());
   await page.goto(server.origin);
   await page.locator('[data-demo="cascade"] [data-action="last"]:enabled').waitFor();

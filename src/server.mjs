@@ -3,17 +3,19 @@
 //   GET  /api/demos               the three demos
 //   GET  /api/recordings          reference runs and saved live runs
 //   GET  /api/recordings/:id      one recording, for replay
-//   POST /api/live {demo}         starts a live run, which spends AIU, and returns its id
-//   GET  /api/live/:id?after=n    waits for the run's events from index n (long poll)
-//   POST /api/live/:id/stop       stops a live run
+//   POST /api/live {demo}         admin: starts a live run, which spends AIU, and returns its id
+//   GET  /api/live/:id?after=n    admin: waits for the run's events from index n (long poll)
+//   POST /api/live/:id/stop       admin: stops a live run
 //   GET  /api/checks              the accessibility checks
-//   POST /api/checks              runs them against the demo page
+//   POST /api/checks              admin: runs them against the demo page
 //   GET  /healthz
 //
 // Settings come from environment variables:
 //   PORT, HOST              where to listen (default 127.0.0.1:4173)
 //   ALLOWED_HOSTS           extra host names the API answers to, comma-separated (for example the Azure host name)
 //   COPILOT_GITHUB_TOKEN    GitHub token for live runs; without it they use the signed-in account
+//   AZURE_AUTH_ENABLED     trust GitHub identities from Azure Easy Auth only when set to true
+//   ADMIN_GITHUB_ID        numeric GitHub user ID allowed to start runs and checks
 //   LIVE_RUN_DAILY_LIMIT    most live runs to start per UTC day (0 means no limit)
 //   LIVE_RUN_CONCURRENCY_LIMIT  most live runs at once (default 5)
 
@@ -207,6 +209,19 @@ function liveStatus(ctx) {
   };
 }
 
+function accessStatus(req, ctx) {
+  // Azure's authentication sidecar strips client-supplied identity headers.
+  // Never trust these headers on a server without Easy Auth enabled.
+  const githubId = ctx.azureAuthEnabled && req.headers['x-ms-client-principal-idp'] === 'github'
+    ? req.headers['x-ms-client-principal-id']
+    : null;
+  return {
+    admin: !!githubId && githubId === ctx.adminGitHubId,
+    signedIn: !!githubId,
+    signInEnabled: ctx.azureAuthEnabled,
+  };
+}
+
 // The Host check stops DNS rebinding. POSTs must be JSON from this site, so other sites can't send them.
 function rejectUnsafe(req, ctx) {
   if (!ctx.allowedHosts.has(String(req.headers.host ?? '').toLowerCase())) return 'Unknown host.';
@@ -220,9 +235,10 @@ function rejectUnsafe(req, ctx) {
 async function handleApi(req, res, url, ctx) {
   const unsafe = rejectUnsafe(req, ctx);
   if (unsafe) return sendJson(res, 403, { error: unsafe });
+  const access = accessStatus(req, ctx);
 
   if (req.method === 'GET' && url.pathname === '/api/config') {
-    return sendJson(res, 200, { live: liveStatus(ctx), activeRuns: ctx.live.active });
+    return sendJson(res, 200, { access, live: liveStatus(ctx), activeRuns: access.admin ? ctx.live.active : [] });
   }
   if (req.method === 'GET' && url.pathname === '/api/demos') return sendJson(res, 200, { demos: DEMOS });
   if (req.method === 'GET' && url.pathname === '/api/recordings') return sendJson(res, 200, { recordings: await listRecordings() });
@@ -232,6 +248,10 @@ async function handleApi(req, res, url, ctx) {
     const recording = await loadRecording(decodeURIComponent(recordingMatch[1]));
     return recording ? sendJson(res, 200, recording) : sendJson(res, 404, { error: 'Recording not found.' });
   }
+
+  const adminOnly = url.pathname === '/api/live' || url.pathname.startsWith('/api/live/')
+    || (url.pathname === '/api/checks' && req.method === 'POST');
+  if (adminOnly && !access.admin) return sendJson(res, 403, { error: 'Only the admin can run live demos or accessibility checks. Sign in with GitHub.' });
 
   if (req.method === 'POST' && url.pathname === '/api/live') {
     if (!ctx.auth.enabled) return sendJson(res, 503, { error: liveStatus(ctx).reason });
@@ -308,6 +328,8 @@ export async function startServer({
   allowedHosts = parseHosts(process.env.ALLOWED_HOSTS),
   dailyLimit = Number(process.env.LIVE_RUN_DAILY_LIMIT ?? 0),
   concurrencyLimit = Number(process.env.LIVE_RUN_CONCURRENCY_LIMIT ?? 5),
+  azureAuthEnabled = process.env.AZURE_AUTH_ENABLED === 'true',
+  adminGitHubId = process.env.ADMIN_GITHUB_ID ?? '',
   auth = liveAuth(),
   runLive = runLiveDemo,
   runChecks = async (options) => (await import('../checks/run-checks.mjs')).runChecks(options),
@@ -315,7 +337,8 @@ export async function startServer({
 } = {}) {
   if (!Number.isSafeInteger(dailyLimit) || dailyLimit < 0) throw new Error('LIVE_RUN_DAILY_LIMIT must be a non-negative integer.');
   if (!Number.isSafeInteger(concurrencyLimit) || concurrencyLimit < 1) throw new Error('LIVE_RUN_CONCURRENCY_LIMIT must be a positive integer.');
-  const ctx = { checking: null, dailyLimit, concurrencyLimit, auth, runChecks };
+  if (azureAuthEnabled && !/^[1-9]\d*$/.test(adminGitHubId)) throw new Error('ADMIN_GITHUB_ID must be a positive numeric GitHub user ID when Azure authentication is enabled.');
+  const ctx = { checking: null, dailyLimit, concurrencyLimit, azureAuthEnabled, adminGitHubId, auth, runChecks };
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -367,6 +390,7 @@ if (isMain(import.meta.url)) {
       console.log(`GitHub Copilot Fusion demos:  ${server.origin}/`);
       console.log(`Demo page:          ${server.pageUrl}`);
       console.log(`Live runs:          ${auth.gitHubToken ? 'on, with COPILOT_GITHUB_TOKEN' : auth.useLoggedInUser ? 'on, with your signed-in account' : 'off (no GitHub token)'}`);
+      console.log(`Admin GitHub login: ${process.env.AZURE_AUTH_ENABLED === 'true' ? 'on, through Azure Easy Auth' : 'off; the dashboard is replay-only'}`);
       console.log('Press Ctrl+C to stop.');
       const shutdown = () => server.close().then(() => process.exit(0));
       process.once('SIGTERM', shutdown);

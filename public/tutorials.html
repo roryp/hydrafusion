@@ -60,7 +60,7 @@
     <section id="app" aria-labelledby="app-title">
       <h2 id="app-title">How the app works</h2>
       <p class="lead">The app sends a prompt to Copilot Fusion through the Copilot SDK and shows each pass as it runs.</p>
-      <p>Each demo card sends one prompt. For Critique and Cascade, the model also gets browser tools and a demo page with accessibility problems built in. Playwright carries out the tool calls in a headless Chrome on the server. On Azure, all of this runs in one Container App; locally, it runs on your machine.</p>
+      <p>When the admin selects Run live, the demo card sends one prompt. For Critique and Cascade, the model also gets browser tools and a demo page with accessibility problems built in. Playwright carries out the tool calls in a headless Chrome on the server. On Azure, all of this runs in one Container App; locally, it runs on your machine.</p>
       <figure class="shot">
         <img src="/images/tutorial/architecture.png" width="1468" height="468" loading="lazy" alt="Architecture. The dashboard in your browser talks to a Node.js app with the web server and the Copilot SDK. The app sends the prompt to GitHub Copilot Fusion, which routes and orchestrates models and returns the passes and cost. Tool calls and checks run in headless Chrome with Playwright, against the demo page. The app and Chrome run in one Azure Container App.">
       </figure>
@@ -70,6 +70,7 @@
         <div>
           <h4>Live run</h4>
           <ul class="bullets">
+            <li>Requires GitHub admin sign-in</li>
             <li>Starts a new Copilot Fusion session</li>
             <li>Spends AIU from the server's Copilot account</li>
             <li>Takes from seconds to several minutes</li>
@@ -86,13 +87,13 @@
           </ul>
         </div>
       </div>
-      <p class="note">AIU (AI Units) count every token a model reads and writes. Only live runs spend them; replays and the accessibility checks are free.</p>
+      <p class="note">AIU (AI Units) count every token a model reads and writes. Only live runs spend them. Replays are public and free; accessibility checks are free but admin-only.</p>
       <p class="note">Each model used is billed at its standard rate, with any applicable offer applied by Copilot. The launch announced a limited-time 30% model-cost discount for paid plans. This app displays SDK-reported usage and does not apply a second discount. Bundled recordings predate the launch and retain their original model IDs, tier labels and charges.</p>
     </section>
 
     <section id="workshop" aria-labelledby="workshop-title">
       <h2 id="workshop-title">Workshop</h2>
-      <p class="lead">Five steps, about 30 minutes. Keep the <a href="/">dashboard</a> open in another tab. Steps 1 to 4 are free; step 5 spends AIU.</p>
+      <p class="lead">Five steps, about 30 minutes. Keep the <a href="/">dashboard</a> open in another tab. Everyone can follow steps 1 to 3. Steps 4 and 5 are admin-only; only step 5 spends AIU.</p>
 
       <h3 id="step-replay">1. Replay a run</h3>
       <ol class="steps-list">
@@ -126,6 +127,7 @@
       <p class="note">The model opens the page, reads it, then measures and clicks. Only the Main pass used the browser; the Review pass judged the answer it was given.</p>
 
       <h3 id="step-checks">4. Run the checks</h3>
+      <p class="note">Admin-only: use <strong>Admin sign-in</strong> on the dashboard. Audience members can read the check descriptions and snippets without running them.</p>
       <ol class="steps-list">
         <li>Under <strong>Accessibility checks</strong>, select <strong>Run the checks</strong>.</li>
         <li>Compare <strong>Measured now</strong> with <strong>Built into the demo page</strong>.</li>
@@ -136,7 +138,7 @@
       <p class="note">Eight fixed Playwright scripts measure the demo page, with no model involved. "8 of 8" means each check found its problem, not that the page passes.</p>
 
       <h3 id="step-live">5. Run it live</h3>
-      <p class="callout warn"><strong>This spends AIU</strong> from the server's Copilot account. In a group, agree who runs it. If live runs are off, replay instead.</p>
+      <p class="callout warn"><strong>Admin-only. This spends AIU</strong> from the server's Copilot account. Sign in with GitHub as the admin to run it. Audience members replay existing runs instead.</p>
       <ol class="steps-list">
         <li>On the <strong>Cascade</strong> card, select <strong>Run live</strong> and confirm.</li>
         <li>Watch the route, the passes and the tool calls appear. Select <strong>Stop the run</strong> to end it early.</li>

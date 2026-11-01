@@ -17,7 +17,7 @@ Select **Copilot Fusion** in the model picker, then choose an effort level. It i
 
 The live-demo short link and repository URL retain their existing addresses; rebranding the workshop does not rename external resources.
 
-Start with recordings and fixed checks, which spend no AIU. Then try a live audit, follow the SDK and browser-tool code, and optionally host the workshop on Azure.
+Audience members replay existing recordings without spending AIU. Only the GitHub admin can start live audits or run the fixed checks. Follow the SDK and browser-tool code, and optionally host the workshop on Azure.
 
 1. [Open the app](#1-open-the-app)
 2. [Explore a recorded run](#2-explore-a-recorded-run)
@@ -28,7 +28,7 @@ Start with recordings and fixed checks, which spend no AIU. Then try a live audi
 
 ## 1. Open the app
 
-Use the **live demo** above to join a hosted workshop; no local setup is needed. The main page keeps the interactive demos, checks and results together. Its **Tutorials** link opens a short workshop, with screenshots, on Copilot Fusion, live runs and replays, and the browser tools.
+Use the **live demo** above to join a hosted workshop; no local setup or sign-in is needed for replays. The main page keeps recordings, check descriptions and results together. Its **Tutorials** link opens a short workshop, with screenshots, on Copilot Fusion, live runs and replays, and the browser tools.
 
 ### Run your own copy locally
 
@@ -45,7 +45,7 @@ npm install
 npm start
 ```
 
-Open http://127.0.0.1:4173/ and leave the terminal running. Replays and the fixed checks do not need a Copilot session.
+Open http://127.0.0.1:4173/ and leave the terminal running. The local dashboard is replay-only; use the terminal commands below for new runs and checks on your own machine. Hosted admin sign-in uses Azure's built-in GitHub authentication.
 
 ## 2. Explore a recorded run
 
@@ -77,6 +77,8 @@ npm run demo -- all --replay reference
 
 **Goal:** establish a measured baseline for the model's audit.
 
+**Hosted dashboard: admin-only.** Sign in with GitHub using **Admin sign-in** first. Audience members can read the expected results and snippets, but cannot execute the checks.
+
 1. Expand **Preview the demo page** under **Accessibility checks**. The page is intentionally inaccessible.
 2. Select **Run the checks**.
 3. Compare **Measured now** with **Built into the demo page**.
@@ -95,6 +97,8 @@ npm run checks
 ## 4. Run an AI-driven audit
 
 **Goal:** compare an AI-selected investigation with the fixed checks.
+
+**Hosted dashboard: admin-only.** Only the configured GitHub admin sees **Run live**. Audience members use the replay buttons instead.
 
 **Live runs spend AIU from the Copilot account used by the server.** In a hosted workshop, that is the host's account, not each participant's.
 
@@ -222,7 +226,25 @@ azd up
 
 Open the dashboard URL printed after deployment. The [preprovision hook](infra/hooks/preprovision.mjs) uses your GitHub CLI sign-in for live runs unless you've supplied a fine-grained token.
 
-**Anyone with the app's URL can start billable live runs.** Share it with your workshop group, monitor account usage, and remove the deployment when you're finished.
+**Audience access is replay-only.** Live runs, live-run controls and accessibility-check execution are protected by the server, not just hidden buttons. Signing in with another GitHub account does not grant admin access.
+
+### Enable GitHub admin sign-in
+
+Until GitHub sign-in is configured, the dashboard stays replay-only even if a Copilot token is present.
+
+1. [Create a GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app). Use the deployed dashboard's HTTPS URL as the homepage, and append `/.auth/login/github/callback` for its authorization callback URL.
+2. Set its client ID and secret in the azd environment, not in source files:
+
+   ```sh
+   azd env set GITHUB_OAUTH_CLIENT_ID "<client-id>"
+   azd env set GITHUB_OAUTH_CLIENT_SECRET "<client-secret>"
+   azd provision
+   azd deploy
+   ```
+
+3. Select **Admin sign-in** on the dashboard. The sole admin defaults to **roryp**, GitHub user ID `6388864`, configured by the `adminGitHubId` parameter in [infra/main.bicep](infra/main.bicep). Access follows the stable ID, not a changeable username.
+
+[Azure Easy Auth](https://learn.microsoft.com/en-us/azure/container-apps/authentication-github) handles login and session cookies. It allows anonymous browsing so audience replays stay public. Only Azure's authenticated GitHub identity is trusted by the API. Do not set `AZURE_AUTH_ENABLED=true` on a server without Azure Easy Auth; local dashboards intentionally do not trust identity headers.
 
 ### Where "headless Chrome inside Azure" is configured
 
@@ -255,7 +277,7 @@ The fixed **Run the checks** path uses the same installed Chrome through Playwri
 
 ### Set expectations and limits
 
-The default deployment admits **five independent live runs at once**, with a **100-start daily cap**. Each run has its own Copilot session, isolated browser and output directory, and unique recording ID. Each tab follows only its own run, including after a reload.
+The default deployment admits **five independent admin live runs at once**, with a **100-start daily cap**. Audience members cannot start any. Each run has its own Copilot session, isolated browser and output directory, and unique recording ID. Each admin tab follows only its own run, including after a reload.
 
 A sixth start receives a busy message without starting a model request. Replays remain available. Simultaneous requests for the fixed accessibility checks share one in-flight execution instead of launching duplicate browsers.
 
@@ -276,21 +298,23 @@ Keep these constraints in mind:
 
 ### Verify before participants join
 
-Run the automated tests locally. They include five-user browser tests with a fake model and spend no AIU; Chrome or Edge must be installed.
+Run the automated tests locally. They cover anonymous and non-admin replay-only access, plus five admin tabs with a fake model, and spend no AIU; Chrome or Edge must be installed.
 
 ```sh
 npm test
 ```
 
-Then test your real Azure endpoint:
+To test your real Azure endpoint, sign in as the admin first. In browser developer tools, copy only the value of the `AppServiceAuthSession` cookie, then set it in your terminal environment (PowerShell example). Treat it as a secret; do not share or commit it.
 
-```sh
+```powershell
+$env:FUSION_ADMIN_SESSION = Get-Clipboard
 npm run test:load -- https://your-app.azurecontainerapps.io 5
+Remove-Item Env:FUSION_ADMIN_SESSION
 ```
 
 **This spends AIU and can take several minutes.** Run it when no visitors have active runs, with enough daily allowance and a user count equal to the deployed concurrency limit.
 
-The test exercises five simultaneous Critique/Cascade runs, rejects a sixth start without consuming allowance, reloads a tab, replays a recording, and requests all eight accessibility checks for each user. It requires successful answers, separate replayable recordings, no session or dashboard errors, and a health-response p95 below three seconds.
+The test exercises five simultaneous admin Critique/Cascade runs, rejects a sixth start without consuming allowance, reloads a tab, replays a recording as an anonymous visitor, and requests all eight accessibility checks as the admin. It requires successful answers, separate replayable recordings, no session or dashboard errors, and a health-response p95 below three seconds.
 
 Results include timings and AIU usage as JSON. The test stops its unfinished runs on failure.
 

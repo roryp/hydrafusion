@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import { after, before, describe, test } from 'node:test';
 import { startServer } from '../src/server.mjs';
-import { heldRuns, pendingPost } from './helpers.mjs';
+import { testDemoLoad } from '../scripts/demo-load.mjs';
+import { ADMIN_ACCESS, ADMIN_HEADERS, heldRuns, pendingPost } from './helpers.mjs';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -36,7 +37,7 @@ async function follow(origin, id) {
   const events = [];
   let after = 0;
   for (;;) {
-    const body = await (await fetch(`${origin}/api/live/${id}?after=${after}`)).json();
+    const body = await (await fetch(`${origin}/api/live/${id}?after=${after}`, { headers: ADMIN_HEADERS })).json();
     events.push(...body.events);
     after = body.next;
     if (body.done) return { events, recordingId: body.recordingId };
@@ -61,7 +62,7 @@ describe('static files and recordings', () => {
   test('keeps the dashboard concise and moves the tutorials to a linked static page', async () => {
     const html = await (await fetch(`${server.origin}/`)).text();
     const intro = html.match(/<h1>[^<]+<\/h1>\s*<p class="subtitle">([^<]+)<\/p>\s*<nav\b/)?.[1];
-    assert.equal(intro, 'Run Copilot Fusion live, replay a recording, or check the demo page.');
+    assert.equal(intro, 'Replay Copilot Fusion runs and explore the demo page.');
     assert.match(html, /<h1>GitHub Copilot Fusion demos<\/h1>/);
     assert.doesNotMatch(html, /research preview/i);
     assert.match(html, /href="\/tutorials\.html">Tutorials<\/a>/);
@@ -120,11 +121,117 @@ describe('static files and recordings', () => {
     }
   });
 
-  test('says when live runs are off', async () => {
+  test('keeps unauthenticated visitors replay-only when live runs are off', async () => {
     const { live } = await (await fetch(`${server.origin}/api/config`)).json();
     assert.equal(live.enabled, false);
     const res = await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' });
+    assert.equal(res.status, 403);
+  });
+});
+
+describe('admin access', () => {
+  test('does not trust spoofed identity headers without Azure authentication', async (t) => {
+    const runner = heldRuns();
+    let checks = 0;
+    const server = await startServer({
+      port: 0, auth: { enabled: true }, azureAuthEnabled: false, adminGitHubId: ADMIN_ACCESS.adminGitHubId,
+      dailyLimit: 1, runLive: runner.runLive, runChecks: async () => { checks++; return []; }, save: async () => {},
+    });
+    t.after(() => server.close());
+    const config = await (await fetch(`${server.origin}/api/config`, { headers: ADMIN_HEADERS })).json();
+    assert.deepEqual(config.access, { admin: false, signedIn: false, signInEnabled: false });
+    for (const pathname of ['/api/live', '/api/checks']) {
+      const res = await fetch(`${server.origin}${pathname}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}',
+      });
+      assert.equal(res.status, 403);
+      assert.match((await res.json()).error, /Only the admin/);
+    }
+    assert.equal(runner.runs.length, 0);
+    assert.equal(checks, 0);
+    assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).live.remainingToday, 1);
+  });
+
+  test('allows only the configured GitHub ID to run, follow, stop and check; replays stay public', async (t) => {
+    const runner = heldRuns();
+    let checks = 0;
+    const server = await startServer({
+      port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, dailyLimit: 2, runLive: runner.runLive,
+      runChecks: async () => { checks++; return []; }, save: async () => {},
+    });
+    t.after(() => server.close());
+    for (const headers of [
+      {},
+      { ...ADMIN_HEADERS, 'X-MS-CLIENT-PRINCIPAL-ID': '43' },
+      { ...ADMIN_HEADERS, 'X-MS-CLIENT-PRINCIPAL-IDP': 'aad' },
+      { 'X-MS-CLIENT-PRINCIPAL-NAME': ADMIN_HEADERS['X-MS-CLIENT-PRINCIPAL-NAME'] },
+    ]) {
+      const config = await (await fetch(`${server.origin}/api/config`, { headers })).json();
+      assert.equal(config.access.admin, false);
+      assert.deepEqual(config.activeRuns, []);
+      for (const pathname of ['/api/live', '/api/checks']) {
+        const res = await fetch(`${server.origin}${pathname}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: '{"demo":"single"}',
+        });
+        assert.equal(res.status, 403);
+      }
+      const res = await fetch(`${server.origin}/api/recordings`, { headers });
+      assert.equal(res.status, 200);
+      const { recordings } = await res.json();
+      assert.equal((await fetch(`${server.origin}/api/recordings/${recordings[0].id}`, { headers })).status, 200);
+    }
+    assert.equal(runner.runs.length, 0);
+    assert.equal(checks, 0);
+    const config = await (await fetch(`${server.origin}/api/config`, {
+      headers: { ...ADMIN_HEADERS, 'X-MS-CLIENT-PRINCIPAL-NAME': 'renamed-admin' },
+    })).json();
+    assert.deepEqual(config.access, { admin: true, signedIn: true, signInEnabled: true });
+    assert.equal(config.live.remainingToday, 2);
+
+    const start = await fetch(`${server.origin}/api/live`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}',
+    });
+    assert.equal(start.status, 202);
+    const { run } = await start.json();
+    assert.equal((await fetch(`${server.origin}/api/live/${run.id}`)).status, 403);
+    assert.equal((await fetch(`${server.origin}/api/live/${run.id}/stop`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    })).status, 403);
+    assert.equal(runner.runs[0].signal.aborted, false);
+    assert.deepEqual((await (await fetch(`${server.origin}/api/config`)).json()).activeRuns, []);
+    assert.equal((await fetch(`${server.origin}/api/checks`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}',
+    })).status, 200);
+    assert.equal(checks, 1);
+    assert.equal((await fetch(`${server.origin}/api/live/${run.id}/stop`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}',
+    })).status, 202);
+    await follow(server.origin, run.id);
+    assert.equal(runner.runs[0].signal.aborted, true);
+  });
+
+  test('still requires a Copilot account after admin sign-in', async (t) => {
+    const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: false } });
+    t.after(() => server.close());
+    const res = await fetch(`${server.origin}/api/live`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}',
+    });
     assert.equal(res.status, 503);
+  });
+
+  test('load tests refuse missing or non-admin sessions before starting any runs', async (t) => {
+    const runner = heldRuns();
+    const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
+    t.after(() => server.close());
+    await assert.rejects(testDemoLoad({ baseUrl: server.origin, adminSession: '' }), /FUSION_ADMIN_SESSION/);
+    await assert.rejects(testDemoLoad({ baseUrl: server.origin, adminSession: 'not-an-admin-session' }), /not signed in as the GitHub admin/);
+    assert.equal(runner.runs.length, 0);
+  });
+
+  test('rejects missing or invalid admin IDs when Azure authentication is enabled', async () => {
+    for (const adminGitHubId of ['', '0', '-1', 'roryp', '42,43']) {
+      await assert.rejects(startServer({ port: 0, azureAuthEnabled: true, adminGitHubId }), /ADMIN_GITHUB_ID/);
+    }
   });
 });
 
@@ -134,6 +241,7 @@ describe('live runs', () => {
   before(async () => {
     server = await startServer({
       port: 0,
+      ...ADMIN_ACCESS,
       auth: { enabled: true },
       dailyLimit: 2,
       concurrencyLimit: 1,
@@ -145,7 +253,7 @@ describe('live runs', () => {
 
   const start = (demo, headers = {}) => fetch(`${server.origin}/api/live`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS, ...headers },
     body: JSON.stringify({ demo }),
   });
 
@@ -166,7 +274,7 @@ describe('live runs', () => {
     const busy = await start('cascade');
     assert.equal(busy.status, 409);
     assert.match((await busy.json()).error, /slots are busy/);
-    assert.equal((await (await fetch(`${server.origin}/api/config`)).json()).activeRuns[0].id, run.id);
+    assert.equal((await (await fetch(`${server.origin}/api/config`, { headers: ADMIN_HEADERS })).json()).activeRuns[0].id, run.id);
 
     const { events, recordingId } = await follow(server.origin, run.id);
     assert.deepEqual(events.map((e) => e.type), ['run.started', 'session.fusion_resolved', 'run.finished']);
@@ -179,9 +287,9 @@ describe('live runs', () => {
     test('admits five independent runs, rejects a sixth, and stops only the selected run', async (t) => {
       const runner = heldRuns();
       const saved = [];
-      const server = await startServer({ port: 0, auth: { enabled: true }, dailyLimit: 10, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
+      const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, dailyLimit: 10, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
       t.after(() => server.close());
-      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"cascade"}' });
+      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"cascade"}' });
       const responses = await Promise.all(Array.from({ length: 5 }, start));
       assert.deepEqual(responses.map((res) => res.status), [202, 202, 202, 202, 202]);
       const runs = await Promise.all(responses.map(async (res) => (await res.json()).run));
@@ -192,7 +300,7 @@ describe('live runs', () => {
       assert.equal(config.live.remainingToday, 5);
       assert.equal((await start()).status, 409);
 
-      await fetch(`${server.origin}/api/live/${runs[0].id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await fetch(`${server.origin}/api/live/${runs[0].id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}' });
       const stopped = await follow(server.origin, runs[0].id);
       assert.equal(stopped.events.at(-1).data.ok, false);
       assert.equal(runner.runs.filter((run) => run.signal.aborted).length, 1);
@@ -217,9 +325,9 @@ describe('live runs', () => {
 
     test('checks the daily cap after concurrent request bodies finish arriving', async (t) => {
       const runner = heldRuns();
-      const server = await startServer({ port: 0, auth: { enabled: true }, dailyLimit: 1, runLive: runner.runLive, save: async () => {} });
+      const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, dailyLimit: 1, runLive: runner.runLive, save: async () => {} });
       t.after(() => server.close());
-      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/live'));
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/live', ADMIN_HEADERS));
       await Promise.all(requests.map((req) => req.ready));
       for (const req of requests) req.send({ demo: 'single' });
       const responses = await Promise.all(requests.map((req) => req.response));
@@ -232,11 +340,11 @@ describe('live runs', () => {
       const saving = Promise.withResolvers();
       const startedSaving = Promise.withResolvers();
       const server = await startServer({
-        port: 0, auth: { enabled: true }, concurrencyLimit: 1, runLive: fakeRun,
+        port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, concurrencyLimit: 1, runLive: fakeRun,
         save: async () => { startedSaving.resolve(); await saving.promise; },
       });
       t.after(async () => { saving.resolve(); await server.close(); });
-      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' });
+      const start = () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}' });
       const { run } = await (await start()).json();
       await startedSaving.promise;
       assert.equal((await start()).status, 409);
@@ -248,12 +356,12 @@ describe('live runs', () => {
     test('reports runner and save failures and releases their slots', async (t) => {
       for (const failure of ['runner', 'save']) {
         const server = await startServer({
-          port: 0, auth: { enabled: true }, concurrencyLimit: 1,
+          port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, concurrencyLimit: 1,
           runLive: failure === 'runner' ? async () => { throw new Error('Runner failed.'); } : fakeRun,
           save: async () => { throw new Error('Save failed.'); },
         });
         t.after(() => server.close());
-        const { run } = await (await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' })).json();
+        const { run } = await (await fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}' })).json();
         const result = await follow(server.origin, run.id);
         assert.equal(result.events.at(-1).data.ok, false);
         assert.match(result.events.at(-1).data.error, /failed/);
@@ -265,9 +373,9 @@ describe('live runs', () => {
     test('shutdown aborts and waits for every active run', async () => {
       const runner = heldRuns();
       const saved = [];
-      const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
+      const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async (recording) => saved.push(recording) });
       try {
-        await Promise.all(Array.from({ length: 5 }, () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' })));
+        await Promise.all(Array.from({ length: 5 }, () => fetch(`${server.origin}/api/live`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{"demo":"single"}' })));
       } finally {
         await server.close();
       }
@@ -281,11 +389,11 @@ describe('live runs', () => {
       let calls = 0;
       const results = [{ id: randomUUID(), matchesExpected: true }];
       const server = await startServer({
-        port: 0, auth: { enabled: false },
+        port: 0, ...ADMIN_ACCESS, auth: { enabled: false },
         runChecks: async () => { calls++; await checking.promise; return results; },
       });
       t.after(async () => { checking.resolve(); await server.close(); });
-      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks'));
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks', ADMIN_HEADERS));
       await Promise.all(requests.map((req) => req.ready));
       for (const req of requests) req.send({});
       assert.equal(calls, 1);
@@ -296,7 +404,7 @@ describe('live runs', () => {
         assert.deepEqual(res.body.results, results);
       }
       assert.equal(calls, 1);
-      const next = await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const next = await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}' });
       assert.equal(next.status, 200);
       assert.equal(calls, 2);
     });
@@ -305,11 +413,11 @@ describe('live runs', () => {
       const checking = Promise.withResolvers();
       let calls = 0;
       const server = await startServer({
-        port: 0, auth: { enabled: false },
+        port: 0, ...ADMIN_ACCESS, auth: { enabled: false },
         runChecks: async () => { calls++; await checking.promise; throw new Error('Browser unavailable.'); },
       });
       t.after(async () => { checking.resolve(); await server.close(); });
-      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks'));
+      const requests = Array.from({ length: 5 }, () => pendingPost(server.origin, '/api/checks', ADMIN_HEADERS));
       await Promise.all(requests.map((req) => req.ready));
       for (const req of requests) req.send({});
       checking.resolve();
@@ -318,7 +426,7 @@ describe('live runs', () => {
         assert.equal(res.body.error, 'Browser unavailable.');
       }
       assert.equal(calls, 1);
-      assert.equal((await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 500);
+      assert.equal((await fetch(`${server.origin}/api/checks`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}' })).status, 500);
       assert.equal(calls, 2);
     });
 
@@ -334,7 +442,7 @@ describe('live runs', () => {
 
   test('can be stopped', async () => {
     const { run } = await (await start('critique')).json();
-    const stop = await fetch(`${server.origin}/api/live/${run.id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const stop = await fetch(`${server.origin}/api/live/${run.id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: '{}' });
     assert.equal(stop.status, 202);
     const { events } = await follow(server.origin, run.id);
     assert.deepEqual(events.at(-1).data, { ok: false, error: 'Stopped.', durationMs: 300 });
@@ -342,6 +450,6 @@ describe('live runs', () => {
 
   test('stop at the daily limit', async () => {
     assert.equal((await start('single')).status, 429);
-    assert.equal((await fetch(`${server.origin}/api/live/00000000-0000-0000-0000-000000000000`)).status, 404);
+    assert.equal((await fetch(`${server.origin}/api/live/00000000-0000-0000-0000-000000000000`, { headers: ADMIN_HEADERS })).status, 404);
   });
 });

@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 
+export const ADMIN_ACCESS = { azureAuthEnabled: true, adminGitHubId: '42' };
+export const ADMIN_HEADERS = {
+  'X-MS-CLIENT-PRINCIPAL-IDP': 'github',
+  'X-MS-CLIENT-PRINCIPAL-ID': '42',
+  'X-MS-CLIENT-PRINCIPAL-NAME': 'workshop-admin',
+};
+
 export function heldRuns() {
   const runs = [];
   return {
@@ -32,12 +39,12 @@ export function heldRuns() {
 }
 
 // The 100 Continue handshake proves all headers reached the server before we send any bodies.
-export function pendingPost(origin, pathname) {
+export function pendingPost(origin, pathname, headers = {}) {
   const ready = Promise.withResolvers();
   const response = Promise.withResolvers();
   const req = http.request(new URL(pathname, origin), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Expect: '100-continue' },
+    headers: { 'Content-Type': 'application/json', Expect: '100-continue', ...headers },
   }, (res) => {
     let body = '';
     res.setEncoding('utf8');

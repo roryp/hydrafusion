@@ -3,17 +3,74 @@ import { test } from 'node:test';
 import { launchBrowser } from '../checks/run-checks.mjs';
 import { startServer } from '../src/server.mjs';
 import { CHECKS } from '../src/shared/checks.mjs';
-import { heldRuns } from './helpers.mjs';
+import { ADMIN_ACCESS, ADMIN_HEADERS, heldRuns } from './helpers.mjs';
 
-test('five dashboard users stay independent, including reload, overload and cancellation', { timeout: 60_000 }, async (t) => {
+test('audience and non-admin GitHub users can only replay; the admin can run and check', { timeout: 60_000 }, async (t) => {
   const runner = heldRuns();
-  const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
+  let checks = 0;
+  const server = await startServer({
+    port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {},
+    runChecks: async () => { checks++; return CHECKS.map((check) => ({ id: check.id, matchesExpected: true, measured: check.expected })); },
+  });
+  t.after(() => server.close());
+  const browser = await launchBrowser();
+  t.after(() => browser.close());
+  const errors = [];
+  for (const headers of [{}, { ...ADMIN_HEADERS, 'X-MS-CLIENT-PRINCIPAL-ID': '43' }]) {
+    const page = await browser.newPage({ reducedMotion: 'reduce', extraHTTPHeaders: headers });
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.goto(server.origin);
+    await page.getByText('Audience mode: replay existing runs. New runs and checks are admin-only.', { exact: true }).waitFor();
+    assert.equal(await page.locator('[data-action="live"]:visible').count(), 0);
+    assert.equal(await page.locator('#run-checks').isVisible(), false);
+    assert.equal(await page.getByRole('button', { name: 'Stop the run', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('link', { name: 'Admin sign-in', exact: true }).count(), headers['X-MS-CLIENT-PRINCIPAL-ID'] ? 0 : 1);
+    assert.equal(await page.getByRole('link', { name: 'Sign out', exact: true }).count(), headers['X-MS-CLIENT-PRINCIPAL-ID'] ? 1 : 0);
+    for (const action of ['reference', 'last']) {
+      await page.locator(`[data-demo="cascade"] [data-action="${action}"]`).click();
+      await page.getByRole('button', { name: 'Skip to the end', exact: true }).click();
+      await page.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
+    }
+    const statuses = await page.evaluate(() => Promise.all(['/api/live', '/api/checks'].map(async (pathname) =>
+      (await fetch(pathname, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"demo":"single"}' })).status)));
+    assert.deepEqual(statuses, [403, 403]);
+    await page.close();
+  }
+  assert.equal(runner.runs.length, 0);
+  assert.equal(checks, 0);
+
+  const admin = await browser.newPage({ reducedMotion: 'reduce', extraHTTPHeaders: ADMIN_HEADERS });
+  admin.on('pageerror', (err) => errors.push(err.message));
+  admin.on('dialog', (dialog) => dialog.accept());
+  await admin.goto(server.origin);
+  await admin.locator('[data-demo="cascade"] [data-action="live"]:enabled').waitFor();
+  assert.equal(await admin.locator('[data-action="live"]:visible').count(), 3);
+  assert.equal(await admin.locator('#run-checks').isVisible(), true);
+  assert.equal(await admin.getByRole('link', { name: 'Sign out', exact: true }).getAttribute('href'), '/.auth/logout?post_logout_redirect_uri=/');
+  await admin.getByRole('button', { name: 'Run the checks', exact: true }).click();
+  await admin.waitForFunction(() => document.querySelector('#checks-status').textContent.startsWith('8 of 8'));
+  assert.equal(checks, 1);
+  await admin.locator('[data-demo="cascade"] [data-action="live"]').click();
+  await admin.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
+  await admin.setExtraHTTPHeaders({ ...ADMIN_HEADERS, 'X-MS-CLIENT-PRINCIPAL-ID': '43' });
+  await admin.reload();
+  await admin.getByText('Audience mode: replay existing runs. New runs and checks are admin-only.', { exact: true }).waitFor();
+  assert.equal(await admin.getByRole('button', { name: 'Stop the run', exact: true }).count(), 0);
+  assert.equal(await admin.locator('[data-action="live"]:visible').count(), 0);
+  assert.equal(runner.runs.length, 1);
+  assert.equal(runner.runs[0].signal.aborted, false);
+  assert.deepEqual(errors, []);
+});
+
+test('five admin tabs stay independent, including reload, overload and cancellation', { timeout: 60_000 }, async (t) => {
+  const runner = heldRuns();
+  const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
   t.after(() => server.close());
   const browser = await launchBrowser();
   t.after(() => browser.close());
   const errors = [];
   const pages = await Promise.all(Array.from({ length: 6 }, async () => {
-    const page = await browser.newPage({ reducedMotion: 'reduce' });
+    const page = await browser.newPage({ reducedMotion: 'reduce', extraHTTPHeaders: ADMIN_HEADERS });
     page.on('pageerror', (err) => errors.push(err.message));
     page.on('dialog', (dialog) => dialog.accept());
     await page.goto(server.origin);
@@ -59,11 +116,11 @@ test('five dashboard users stay independent, including reload, overload and canc
 
 test('a slow start disables repeat submissions before the first response arrives', { timeout: 30_000 }, async (t) => {
   const runner = heldRuns();
-  const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
+  const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
   t.after(() => server.close());
   const browser = await launchBrowser();
   t.after(() => browser.close());
-  const page = await browser.newPage();
+  const page = await browser.newPage({ extraHTTPHeaders: ADMIN_HEADERS });
   page.on('dialog', (dialog) => dialog.accept());
   const held = Promise.withResolvers();
   const intercepted = Promise.withResolvers();
@@ -79,6 +136,7 @@ test('a slow start disables repeat submissions before the first response arrives
   await page.locator('[data-demo="single"] [data-action="live"]').click();
   await intercepted.promise;
   assert.ok(await page.locator('[data-demo="single"] [data-action="live"]').isDisabled());
+  assert.equal(await page.locator('[data-demo="single"] [data-action="live"]').isVisible(), true);
   await page.evaluate(() => document.querySelector('[data-demo="cascade"] [data-action="live"]').click());
   held.resolve();
   await page.getByRole('button', { name: 'Stop the run', exact: true }).waitFor();
@@ -104,6 +162,7 @@ test('replay controls wait for recordings instead of dropping clicks on a slow c
   const replay = page.locator('[data-demo="single"] [data-action="reference"]');
   assert.ok(await replay.isDisabled());
   assert.ok(await page.locator('[data-demo="single"] [data-action="live"]').isDisabled());
+  assert.equal(await page.locator('[data-demo="single"] [data-action="live"]').isVisible(), false);
   held.resolve();
   await replay.click();
   await page.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
@@ -112,18 +171,19 @@ test('replay controls wait for recordings instead of dropping clicks on a slow c
 test('the simplified dashboard retains every interactive view and resumes a run after visiting tutorials', { timeout: 60_000 }, async (t) => {
   const runner = heldRuns();
   const server = await startServer({
-    port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async () => {},
+    port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {},
     runChecks: async () => CHECKS.map((check) => ({ id: check.id, matchesExpected: true, measured: check.expected })),
   });
   t.after(() => server.close());
   const browser = await launchBrowser();
   t.after(() => browser.close());
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce', extraHTTPHeaders: ADMIN_HEADERS });
   const errors = [];
   page.on('pageerror', (err) => errors.push(err.message));
   page.on('dialog', (dialog) => dialog.accept());
   await page.goto(server.origin);
   await page.locator('[data-demo="single"] [data-action="reference"]:enabled').waitFor();
+  await page.locator('[data-demo="single"] [data-action="live"]:enabled').waitFor();
   assert.deepEqual(await page.locator('#demo-cards .tier').allTextContents(), ['Fusion High effort', 'Fusion Max effort', 'Fusion High effort']);
   assert.equal(await page.locator('main > section').first().getAttribute('id'), 'try');
   assert.equal(await page.locator('#demo-cards [data-action="live"]').count(), 3);
@@ -184,14 +244,14 @@ test('the simplified dashboard retains every interactive view and resumes a run 
 
 test('a pre-launch tab resumes its live run and migrates its storage key', { timeout: 30_000 }, async (t) => {
   const runner = heldRuns();
-  const server = await startServer({ port: 0, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
+  const server = await startServer({ port: 0, ...ADMIN_ACCESS, auth: { enabled: true }, runLive: runner.runLive, save: async () => {} });
   t.after(() => server.close());
   const browser = await launchBrowser();
   t.after(() => browser.close());
-  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  const page = await browser.newPage({ reducedMotion: 'reduce', extraHTTPHeaders: ADMIN_HEADERS });
   await page.goto(server.origin);
   const { run } = await (await fetch(`${server.origin}/api/live`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ demo: 'single' }),
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...ADMIN_HEADERS }, body: JSON.stringify({ demo: 'single' }),
   })).json();
   await page.evaluate((saved) => sessionStorage.setItem('hydrafusion.live-run', JSON.stringify(saved)), run);
   const resumed = page.waitForRequest((req) => req.url().includes(`/api/live/${run.id}?after=0`));

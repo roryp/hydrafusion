@@ -5,6 +5,13 @@ import { execFileSync } from 'node:child_process';
 
 const onWindows = process.platform === 'win32';
 
+const oauthClientId = process.env.GITHUB_OAUTH_CLIENT_ID?.trim() || '';
+const oauthClientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET?.trim() || '';
+if (!!oauthClientId !== !!oauthClientSecret) {
+  throw new Error('Set both GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET for admin sign-in, or leave both empty.');
+}
+if (!oauthClientId) console.warn('Admin sign-in is off: set GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET. The dashboard will be replay-only.');
+
 function setAzdValue(name, value) {
   execFileSync('azd', ['env', 'set', name, value], { shell: onWindows, stdio: ['ignore', 'ignore', 'inherit'] });
 }

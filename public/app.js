@@ -119,12 +119,15 @@ async function loadConfig({ resume = false } = {}) {
     const res = await fetch('/api/config', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     state.config = await res.json();
-  } catch {
+  } catch (err) {
     state.config = null;
+    showLiveMessage(`Could not load server access: ${err.message}`);
   }
+  renderAccessControls();
   renderLiveNote();
   renderCards();
-  if (resume && !state.live) {
+  updateControls();
+  if (resume && isAdmin() && !state.live) {
     try {
       const run = JSON.parse(sessionStorage.getItem(LIVE_RUN_STORAGE_KEY) ?? sessionStorage.getItem(LEGACY_LIVE_RUN_STORAGE_KEY));
       if (run) {
@@ -137,9 +140,22 @@ async function loadConfig({ resume = false } = {}) {
   }
 }
 
+function isAdmin() {
+  return state.config?.access?.admin === true;
+}
+
+function renderAccessControls() {
+  const access = state.config?.access;
+  $('#admin-sign-in').hidden = !access?.signInEnabled || access.signedIn;
+  $('#admin-sign-out').hidden = !access?.signedIn;
+  $('#run-checks').hidden = !isAdmin();
+  $('#run-checks').disabled = !isAdmin() || state.checking;
+  if (!isAdmin()) $('#checks-status').textContent = 'Only the admin can run these checks.';
+}
+
 function canStartLive() {
   const live = state.config?.live;
-  return !!live?.enabled && live.remainingToday !== 0 && !state.live && !state.startingLive;
+  return isAdmin() && !!live?.enabled && live.remainingToday !== 0 && !state.live && !state.startingLive;
 }
 
 function renderLiveNote() {
@@ -147,7 +163,8 @@ function renderLiveNote() {
   const live = state.config?.live;
   let text;
   if (state.liveMessage) text = state.liveMessage;
-  else if (!live) text = 'Couldn’t reach the server.';
+  else if (!state.config) text = 'Couldn’t reach the server.';
+  else if (!isAdmin()) text = 'Audience mode: replay existing runs. New runs and checks are admin-only.';
   else if (!live.enabled) text = `${live.reason} Replays and checks still work.`;
   else if (live.remainingToday === 0) text = `This server has started its ${live.dailyLimit} live runs for today. Replays and checks still work.`;
   else {
@@ -308,6 +325,10 @@ function buildChecks() {
 
 async function runChecks() {
   if (state.checking) return;
+  if (!isAdmin()) {
+    announce('Only the admin can run these checks.');
+    return;
+  }
   state.checking = true;
   const button = $('#run-checks');
   const status = $('#checks-status');
@@ -332,7 +353,7 @@ async function runChecks() {
     status.textContent = `The checks didn’t run: ${err.message}`;
   } finally {
     state.checking = false;
-    button.disabled = false;
+    button.disabled = !isAdmin();
   }
 }
 
@@ -345,7 +366,7 @@ function buildCards() {
       h('p', { class: 'tier' }, effortLabel(demo.tier)),
       h('pre', { class: 'prompt-box' }, demo.prompt),
       h('div', { class: 'actions' },
-        h('button', { type: 'button', class: 'button', 'data-action': 'live', onclick: () => runLive(demo) },
+        h('button', { type: 'button', class: 'button', 'data-action': 'live', hidden: true, disabled: true, onclick: () => runLive(demo) },
           'Run live', h('span', { class: 'visually-hidden' }, `: ${demo.title} demo`)),
         h('button', { type: 'button', class: 'button secondary', 'data-action': 'last', onclick: () => replayLast(demo) },
           'Replay last live run', h('span', { class: 'visually-hidden' }, `: ${demo.title} demo`)),
@@ -364,6 +385,7 @@ function renderCards() {
     const reference = state.recordings.some((recording) => recording.source === 'reference' && recording.demoId === card.dataset.demo);
     for (const button of card.querySelectorAll('button')) {
       const action = button.dataset.action;
+      button.hidden = action === 'live' && !isAdmin();
       button.disabled = (action === 'live' && !canStartLive()) || (action === 'last' && !last) || (action === 'reference' && !reference);
     }
     $('[data-role="last-run"]', card).textContent = last
@@ -449,7 +471,7 @@ function updateControls() {
   const view = currentView();
   if (!slot || !view) return;
   const buttons = [];
-  if (view.kind === 'live' && liveInProgress() && !state.live.stopping) buttons.push('stop');
+  if (isAdmin() && view.kind === 'live' && liveInProgress() && !state.live.stopping) buttons.push('stop');
   if (view.kind === 'replay' && state.replay) buttons.push('skip');
   if (view.kind === 'replay' && state.views.live) buttons.push(liveInProgress() ? 'back-running' : 'back');
   const key = buttons.join(',');
@@ -790,7 +812,7 @@ function renderCostTables() {
   const live = state.recordings.filter((r) => r.source === 'live');
   $('#live-costs').replaceChildren(live.length
     ? groupedCostTable(live, { withReplay: true })
-    : h('p', { class: 'muted' }, 'No live runs yet. Run a demo above, or use "npm run demo".'));
+    : h('p', { class: 'muted' }, 'No saved live runs yet.'));
 }
 
 async function loadRecordings() {

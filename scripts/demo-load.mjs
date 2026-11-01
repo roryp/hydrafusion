@@ -8,18 +8,21 @@ import { buildTrace, currentPattern, finalAnswer, totals } from '../src/shared/t
 const RESPONSIVENESS_LIMIT_MS = 3000;
 const BROWSER_DEMOS = ['critique', 'cascade'];
 
-export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000 }) {
+export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000, adminSession = process.env.FUSION_ADMIN_SESSION }) {
   assert.ok(Number.isSafeInteger(users) && users > 0, 'Users must be a positive integer.');
+  assert.ok(adminSession, 'Set FUSION_ADMIN_SESSION to your signed-in AppServiceAuthSession cookie. Load tests are admin-only.');
   const origin = new URL(baseUrl).origin;
   const request = async (pathname, body) => {
     const res = await fetch(`${origin}${pathname}`, {
-      ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+      headers: { Cookie: `AppServiceAuthSession=${adminSession}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(30_000),
     });
     return { status: res.status, body: await res.json() };
   };
   const config = await request('/api/config');
   assert.equal(config.status, 200);
+  assert.equal(config.body.access?.admin, true, 'The session is not signed in as the GitHub admin.');
   assert.equal(config.body.live.enabled, true, 'Live runs are disabled.');
   assert.equal(config.body.live.activeCount, 0, 'Wait for other visitors to finish before running a load test.');
   assert.equal(config.body.live.concurrencyLimit, users, 'Use the deployed concurrency limit to test saturation.');
@@ -92,8 +95,10 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
   };
 
   try {
+    const adminContext = await browser.newContext({ reducedMotion: 'reduce' });
+    await adminContext.addCookies([{ name: 'AppServiceAuthSession', value: adminSession, url: origin }]);
     const pages = await Promise.all(Array.from({ length: users }, async () => {
-      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      const page = await adminContext.newPage();
       page.on('pageerror', (err) => pageErrors.push(err.message));
       page.on('dialog', (dialog) => dialog.accept());
       await page.goto(origin, { waitUntil: 'networkidle' });
@@ -131,7 +136,7 @@ export async function testDemoLoad({ baseUrl, users = 5, timeoutMs = 22 * 60_000
     await replay.locator('[data-demo="single"] [data-action="reference"]').click();
     await replay.locator('#viewer [data-role="badge"]').filter({ hasText: /^Finished$/ }).waitFor();
 
-    console.error(`Started ${users} independent browser-backed live runs on ${origin}; saturation, reload and replay checks passed.`);
+    console.error(`Started ${users} independent admin live runs on ${origin}; saturation, reload and public replay checks passed.`);
     const [results, checkResponses] = await Promise.all([
       Promise.all(runs.map(follow)),
       Promise.all(Array.from({ length: users }, () => request('/api/checks', {}))),

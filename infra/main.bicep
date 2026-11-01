@@ -16,6 +16,17 @@ param webImageName string = ''
 @description('GitHub token with Copilot access for live runs. The preprovision hook takes it from the GitHub CLI. Leave empty to turn live runs off.')
 param copilotGitHubToken string = ''
 
+@description('Client ID of the GitHub OAuth app used for admin sign-in. Leave empty for replay-only access.')
+param gitHubOAuthClientId string = ''
+
+@secure()
+@description('Client secret of the GitHub OAuth app used for admin sign-in.')
+param gitHubOAuthClientSecret string = ''
+
+@minLength(1)
+@description('Numeric GitHub user ID of the sole admin. Defaults to roryp; usernames can change without changing access.')
+param adminGitHubId string = '6388864'
+
 @minValue(0)
 @description('Most live runs the app starts per UTC day. 0 means no limit.')
 param liveRunDailyLimit int = 100
@@ -42,6 +53,9 @@ module resources 'resources.bicep' = {
     resourceToken: resourceToken
     webImageName: webImageName
     copilotGitHubToken: copilotGitHubToken
+    gitHubOAuthClientId: gitHubOAuthClientId
+    gitHubOAuthClientSecret: gitHubOAuthClientSecret
+    adminGitHubId: adminGitHubId
     liveRunDailyLimit: liveRunDailyLimit
     liveRunConcurrencyLimit: liveRunConcurrencyLimit
   }

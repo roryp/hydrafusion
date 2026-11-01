@@ -14,13 +14,15 @@
     <div class="wrap">
       <p class="eyebrow">Accessibility testing</p>
       <h1>GitHub Copilot Fusion demos</h1>
-      <p class="subtitle">Run Copilot Fusion live, replay a recording, or check the demo page.</p>
+      <p class="subtitle">Replay Copilot Fusion runs and explore the demo page.</p>
       <nav aria-label="Sections">
         <ul class="agenda">
           <li><a href="#try">Demos</a></li>
           <li><a href="#testing">Accessibility checks</a></li>
           <li><a href="#cost">Saved runs and costs</a></li>
           <li><a href="/tutorials.html">Tutorials</a></li>
+          <li id="admin-sign-in" hidden><a href="/.auth/login/github?post_login_redirect_uri=/">Admin sign-in</a></li>
+          <li id="admin-sign-out" hidden><a href="/.auth/logout?post_logout_redirect_uri=/">Sign out</a></li>
         </ul>
       </nav>
     </div>
@@ -30,7 +32,7 @@
     <div id="announcer" class="visually-hidden" role="status" aria-live="polite"></div>
 
     <section id="try" aria-labelledby="try-title">
-      <h2 id="try-title">Run a demo</h2>
+      <h2 id="try-title">Explore a demo</h2>
       <p id="live-note" class="live-note"></p>
       <div id="demo-cards" class="demo-cards"></div>
 
@@ -79,7 +81,7 @@
           <figcaption>A demo page with problems built in. <a href="/demo-page/" target="_blank" rel="noopener noreferrer">Open the demo page in a new tab</a></figcaption>
         </figure>
       </details>
-      <p><button type="button" id="run-checks" class="button">Run the checks</button> <span id="checks-status" class="muted" role="status"></span></p>
+      <p><button type="button" id="run-checks" class="button" hidden disabled>Run the checks</button> <span id="checks-status" class="muted" role="status"></span></p>
       <div class="table-scroll" role="region" aria-label="Accessibility check results" tabindex="0">
         <table class="grid checks">
           <thead>

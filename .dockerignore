@@ -2,6 +2,7 @@ node_modules
 .git
 .azure
 .vscode
+.playwright-mcp
 runs/*
 !runs/.gitkeep
 test
