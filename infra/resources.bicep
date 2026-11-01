@@ -125,7 +125,7 @@ resource web 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'ALLOWED_HOSTS', value: '${webName}.${environment.properties.defaultDomain}' }
             { name: 'LIVE_RUN_DAILY_LIMIT', value: string(liveRunDailyLimit) }
             { name: 'LIVE_RUN_CONCURRENCY_LIMIT', value: string(liveRunConcurrencyLimit) }
-            { name: 'AZURE_AUTH_ENABLED', value: string(gitHubAuthEnabled) }
+            { name: 'AZURE_AUTH_ENABLED', value: gitHubAuthEnabled ? 'true' : 'false' }
             { name: 'ADMIN_GITHUB_ID', value: adminGitHubId }
           ], secretEnv)
         }
